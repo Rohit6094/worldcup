@@ -55,9 +55,22 @@ def build_leaderboard_from_predictions():
             str(row.get("displayName", "")).lower(),
         ),
     )
+    return assign_leaderboard_ranks(records)
+
+
+def assign_leaderboard_ranks(records):
+    ranked_records = []
+    previous_points = None
+    current_rank = 0
+
     for index, record in enumerate(records, start=1):
-        record["rank"] = index
-    return records
+        points = int(record.get("points", 0))
+        if previous_points is None or points != previous_points:
+            current_rank = index
+            previous_points = points
+        ranked_records.append({**record, "rank": current_rank})
+
+    return ranked_records
 
 
 def get_leaderboard_payload():

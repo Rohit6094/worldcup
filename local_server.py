@@ -146,6 +146,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(400, {"success": False, "error": error})
             return
 
+        advancing_team = payload["advancingTeam"] if payload["predictedWinner"] == "Draw / Penalties" else payload["predictedWinner"]
         prediction = {
             "matchId": str(payload["matchId"]).strip(),
             "userId": str(payload.get("userId", "")).strip(),
@@ -153,7 +154,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             "username": str(payload.get("username", "")).strip(),
             "displayName": str(payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
-            "advancingTeam": str(payload.get("advancingTeam") or payload["predictedWinner"]).strip(),
+            "advancingTeam": str(advancing_team).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
             "submittedAt": datetime.now(timezone.utc).isoformat(),

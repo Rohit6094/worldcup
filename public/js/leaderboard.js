@@ -94,9 +94,9 @@ function renderOverall(container, state) {
         </thead>
         <tbody>
           ${sorted
-            .map((row, index) => `
+            .map((row) => `
               <tr>
-                <td>#${index + 1}</td>
+                <td>#${row.rank}</td>
                 <td>${WCApp.escapeHtml(row.displayName)}</td>
                 <td><strong>${row.points}</strong></td>
                 <td>${row.correctWinners}</td>

@@ -154,6 +154,37 @@ def write_local_users(users):
     USERS_FILE.write_text(json.dumps(users, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def user_identity_values(user):
+    values = {
+        str(user.get("id") or "").strip(),
+        normalize_username(user.get("username")),
+        normalize_email(user.get("email")),
+        normalize_username(user.get("displayName")),
+    }
+    return {value for value in values if value}
+
+
+def prediction_belongs_to_user(prediction, user):
+    identifiers = user_identity_values(user)
+    prediction_values = {
+        str(prediction.get("userId") or "").strip(),
+        normalize_username(prediction.get("username")),
+        normalize_email(prediction.get("userEmail")),
+        normalize_username(prediction.get("displayName")),
+    }
+    return bool(identifiers.intersection(value for value in prediction_values if value))
+
+
+def ensure_unique_username_for_user(user):
+    clean_username = normalize_username(user.get("username") or user.get("email"))
+    if not clean_username:
+        raise ValueError("Username is required.")
+
+    owner = find_user_by_username(clean_username, include_private=True)
+    if owner and owner.get("id") != user.get("id"):
+        raise ValueError("That username is already in use.")
+
+
 def list_users(include_private=False):
     users = []
     if is_vercel_kv_configured():
@@ -229,6 +260,8 @@ def find_user_by_username(username, include_private=True):
 
 
 def persist_user(user):
+    ensure_unique_username_for_user(user)
+
     if is_vercel_kv_configured():
         kv_command(["SET", user_key(user["id"]), json.dumps(user, ensure_ascii=False)])
         kv_command(["SET", username_key(user.get("username") or user.get("email")), user["id"]])
@@ -236,7 +269,13 @@ def persist_user(user):
         kv_command(["SADD", USER_KEYS_SET, user_key(user["id"])])
         return user
 
-    users = [item for item in read_local_users() if item.get("id") != user.get("id")]
+    users = []
+    for item in read_local_users():
+        if item.get("id") == user.get("id"):
+            continue
+        if normalize_username(item.get("username") or item.get("email")) == normalize_username(user.get("username") or user.get("email")):
+            raise ValueError("That username is already in use.")
+        users.append(item)
     users.append(user)
     write_local_users(users)
     return user
@@ -265,7 +304,10 @@ def create_user(display_name, email="", password="", role="user", username=""):
         "role": clean_role,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
-    persist_user(user)
+    try:
+        persist_user(user)
+    except ValueError as error:
+        return {"success": False, "error": str(error)}
     return {"success": True, "user": public_user(user)}
 
 
@@ -311,7 +353,10 @@ def admin_save_user(user_id="", display_name="", email="", role="user", password
                 return {"success": False, "error": password_error}
             existing["salt"] = secrets.token_hex(16)
             existing["passwordHash"] = hash_password(password, existing["salt"])
-        persist_user(existing)
+        try:
+            persist_user(existing)
+        except ValueError as error:
+            return {"success": False, "error": str(error)}
         if is_vercel_kv_configured() and old_email and old_email != clean_username:
             kv_command(["DEL", email_key(old_email)])
         if is_vercel_kv_configured() and old_username and old_username != clean_username:
@@ -321,10 +366,30 @@ def admin_save_user(user_id="", display_name="", email="", role="user", password
     return create_user(clean_name, password=password, role=clean_role, username=clean_username)
 
 
+def delete_predictions_for_user(user):
+    predictions = list_predictions()
+    matching_predictions = [prediction for prediction in predictions if prediction_belongs_to_user(prediction, user)]
+
+    if is_vercel_kv_configured():
+        for prediction in matching_predictions:
+            delete_prediction(
+                prediction.get("matchId", ""),
+                prediction.get("userId", ""),
+                prediction.get("username") or prediction.get("userEmail") or prediction.get("displayName") or "",
+            )
+    else:
+        remaining = [prediction for prediction in predictions if not prediction_belongs_to_user(prediction, user)]
+        write_local_predictions(remaining)
+
+    return len(matching_predictions)
+
+
 def delete_user(user_id):
     user = find_user_by_id(user_id, include_private=True)
     if not user:
         return {"deleted": False, "storage": "none"}
+
+    deleted_predictions = delete_predictions_for_user(user)
 
     if is_vercel_kv_configured():
         key = user_key(user_id)
@@ -332,11 +397,11 @@ def delete_user(user_id):
         kv_command(["SREM", USER_KEYS_SET, key])
         kv_command(["DEL", email_key(user.get("email", ""))])
         kv_command(["DEL", username_key(user.get("username") or user.get("email", ""))])
-        return {"deleted": True, "storage": "vercel-kv"}
+        return {"deleted": True, "deletedPredictions": deleted_predictions, "storage": "vercel-kv"}
 
     users = [item for item in read_local_users() if item.get("id") != user_id]
     write_local_users(users)
-    return {"deleted": True, "storage": "local-json"}
+    return {"deleted": True, "deletedPredictions": deleted_predictions, "storage": "local-json"}
 
 
 def append_prediction_to_google_sheets(prediction):

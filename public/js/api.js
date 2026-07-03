@@ -496,9 +496,21 @@
       rows.set(key, row);
     });
 
-    return Array.from(rows.values())
-      .sort((a, b) => b.points - a.points || b.exactScores - a.exactScores || b.correctWinners - a.correctWinners || a.displayName.localeCompare(b.displayName))
-      .map((row, index) => ({ ...row, rank: index + 1 }));
+    return assignLeaderboardRanks(
+      Array.from(rows.values()).sort((a, b) => b.points - a.points || b.exactScores - a.exactScores || b.correctWinners - a.correctWinners || a.displayName.localeCompare(b.displayName))
+    );
+  }
+
+  function assignLeaderboardRanks(rows) {
+    let previousPoints = null;
+    let currentRank = 0;
+    return rows.map((row, index) => {
+      if (previousPoints === null || row.points !== previousPoints) {
+        currentRank = index + 1;
+        previousPoints = row.points;
+      }
+      return { ...row, rank: currentRank };
+    });
   }
 
   function getTeamCode(team) {
@@ -741,6 +753,18 @@
         errorEl.textContent = "Select the team advancing after penalties.";
         return;
       }
+      if (form.elements.predictedWinner.value !== "Draw / Penalties") {
+        const homeName = match.homeTeam?.name || "Home team";
+        const awayName = match.awayTeam?.name || "Away team";
+        if (form.elements.predictedWinner.value === homeName && homeScore <= awayScore) {
+          errorEl.textContent = `${homeName} goals must be greater than ${awayName} goals.`;
+          return;
+        }
+        if (form.elements.predictedWinner.value === awayName && awayScore <= homeScore) {
+          errorEl.textContent = `${awayName} goals must be greater than ${homeName} goals.`;
+          return;
+        }
+      }
       const prediction = {
         matchId: match.id,
         userId: currentUser.id,
@@ -816,6 +840,7 @@
     deletePrediction,
     removePredictionLocally,
     scorePrediction,
+    assignLeaderboardRanks,
     buildPredictionRows,
     buildLeaderboardFromPredictions,
     getFlagUrl,

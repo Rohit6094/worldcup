@@ -98,8 +98,16 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+.logo span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .logo-mark {
@@ -118,6 +126,7 @@ button {
   align-items: center;
   justify-content: flex-end;
   flex: 1;
+  min-width: 0;
   gap: 6px;
 }
 
@@ -141,6 +150,7 @@ button {
   display: inline-flex;
   align-items: center;
   margin-left: auto;
+  min-width: 0;
   gap: 6px;
 }
 
@@ -155,6 +165,10 @@ button {
 .nav-user {
   display: inline-flex;
   align-items: center;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   min-height: 38px;
   border: 1px solid rgba(212, 212, 216, 0.86);
   border-radius: 999px;
@@ -1698,6 +1712,9 @@ main {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     width: 100%;
     min-height: 38px;
     white-space: nowrap;
@@ -1706,9 +1723,11 @@ main {
   }
 
   .auth-nav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     grid-column: 1 / -1;
     width: 100%;
-    flex-wrap: wrap;
     justify-content: flex-end;
     margin-left: 0;
     border-top: 1px solid rgba(212, 212, 216, 0.8);
@@ -1716,11 +1735,12 @@ main {
   }
 
   .auth-nav a {
-    flex: 1 1 0;
+    min-width: 0;
   }
 
   .auth-nav .nav-user {
-    margin-left: auto;
+    justify-self: end;
+    max-width: 100%;
   }
 
   .nav-user {
@@ -1883,11 +1903,18 @@ main {
   }
 
   .auth-nav {
+    grid-template-columns: 1fr 1fr;
     justify-content: stretch;
   }
 
-  .auth-nav .nav-user,
+  .auth-nav .nav-user {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    justify-content: center;
+    max-width: 100%;
+  }
+
   .auth-nav .nav-button {
-    flex: 1 1 100%;
+    width: 100%;
   }
 }

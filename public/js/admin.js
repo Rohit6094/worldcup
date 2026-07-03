@@ -115,18 +115,30 @@ function editUser(userId) {
 }
 
 async function removeUser(userId) {
-  if (!confirm("Delete this user? Their predictions will remain unless deleted separately.")) return;
+  const user = adminState.users.find((item) => item.id === userId);
+  if (!confirm("Delete this user and all of their predictions?")) return;
   const result = await WCAuth.deleteUser(userId);
   if (!result.success) {
     WCApp.showToast(result.error, "error");
     return;
   }
-  const predictions = WCApp.getSavedPredictions().filter((prediction) => prediction.userId !== userId);
+  const identifiers = new Set(
+    [userId, user?.username, user?.email, user?.displayName]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase())
+  );
+  const belongsToDeletedUser = (prediction) => {
+    const values = [prediction.userId, prediction.username, prediction.userEmail, prediction.displayName]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase());
+    return values.some((value) => identifiers.has(value));
+  };
+  const predictions = WCApp.getSavedPredictions().filter((prediction) => !belongsToDeletedUser(prediction));
   localStorage.setItem("wc2026_predictions", JSON.stringify(predictions));
   adminState.users = await WCAuth.fetchUsers();
-  adminState.predictions = adminState.predictions.filter((prediction) => prediction.userId !== userId);
+  adminState.predictions = adminState.predictions.filter((prediction) => !belongsToDeletedUser(prediction));
   renderAdmin();
-  WCApp.showToast("User deleted.");
+  WCApp.showToast(`User deleted. Removed ${result.deletedPredictions || 0} associated prediction${result.deletedPredictions === 1 ? "" : "s"}.`);
 }
 
 async function savePredictionFromForm(event) {
@@ -170,8 +182,30 @@ async function savePredictionFromForm(event) {
     errorEl.textContent = "Enter the advancing team for penalty predictions.";
     return;
   }
+  if (prediction.predictedWinner === "Draw / Penalties" && homeScore !== awayScore) {
+    errorEl.textContent = "A draw / penalties prediction should use a tied score.";
+    return;
+  }
   if (prediction.predictedWinner !== "Draw / Penalties" && !prediction.advancingTeam) {
     prediction.advancingTeam = prediction.predictedWinner;
+  }
+  const homeName = match.homeTeam?.name || "Home team";
+  const awayName = match.awayTeam?.name || "Away team";
+  if (prediction.predictedWinner !== "Draw / Penalties" && ![homeName, awayName].includes(prediction.predictedWinner)) {
+    errorEl.textContent = "Predicted winner must match one of the match teams or Draw / Penalties.";
+    return;
+  }
+  if (prediction.predictedWinner === "Draw / Penalties" && ![homeName, awayName].includes(prediction.advancingTeam)) {
+    errorEl.textContent = "Advancing team must match one of the match teams.";
+    return;
+  }
+  if (prediction.predictedWinner === homeName && homeScore <= awayScore) {
+    errorEl.textContent = `${homeName} goals must be greater than ${awayName} goals.`;
+    return;
+  }
+  if (prediction.predictedWinner === awayName && awayScore <= homeScore) {
+    errorEl.textContent = `${awayName} goals must be greater than ${homeName} goals.`;
+    return;
   }
 
   const result = await WCApp.submitPrediction(prediction);

@@ -47,6 +47,36 @@ def validate_prediction_cutoff(match_id):
     return None
 
 
+def validate_score_matches_winner(payload):
+    match = find_match(str(payload.get("matchId", "")).strip())
+    if not match:
+        return "Match could not be found"
+
+    home_name = str((match.get("homeTeam") or {}).get("name") or "Home team").strip()
+    away_name = str((match.get("awayTeam") or {}).get("name") or "Away team").strip()
+    predicted_winner = str(payload.get("predictedWinner", "")).strip()
+    advancing_team = str(payload.get("advancingTeam", "")).strip()
+    home_score = payload.get("homeScore")
+    away_score = payload.get("awayScore")
+
+    if predicted_winner == "Draw / Penalties":
+        if not advancing_team:
+            return "advancingTeam is required for penalty predictions"
+        if advancing_team not in {home_name, away_name}:
+            return "advancingTeam must be one of the match teams"
+        if home_score != away_score:
+            return "main score must be tied for penalty predictions"
+        return None
+
+    if predicted_winner not in {home_name, away_name}:
+        return "predictedWinner must be one of the match teams or Draw / Penalties"
+    if predicted_winner == home_name and home_score <= away_score:
+        return f"{home_name} goals must be greater than {away_name} goals"
+    if predicted_winner == away_name and away_score <= home_score:
+        return f"{away_name} goals must be greater than {home_name} goals"
+    return None
+
+
 def validate_prediction(payload):
     missing = [field for field in REQUIRED_FIELDS if field not in payload]
     if missing:
@@ -65,11 +95,9 @@ def validate_prediction(payload):
         return "homeScore must be a non-negative integer"
     if not is_non_negative_integer(payload.get("awayScore")):
         return "awayScore must be a non-negative integer"
-    if payload.get("predictedWinner") == "Draw / Penalties":
-        if not str(payload.get("advancingTeam", "")).strip():
-            return "advancingTeam is required for penalty predictions"
-        if payload.get("homeScore") != payload.get("awayScore"):
-            return "main score must be tied for penalty predictions"
+    score_error = validate_score_matches_winner(payload)
+    if score_error:
+        return score_error
     return None
 
 
@@ -92,6 +120,7 @@ class handler(BaseHTTPRequestHandler):
             json_response(self, 400, error_payload(error, "validation_error"), methods="POST, OPTIONS")
             return
 
+        advancing_team = payload["advancingTeam"] if payload["predictedWinner"] == "Draw / Penalties" else payload["predictedWinner"]
         prediction = {
             "matchId": str(payload["matchId"]).strip(),
             "userId": str(payload.get("userId", "")).strip(),
@@ -99,7 +128,7 @@ class handler(BaseHTTPRequestHandler):
             "username": str(payload.get("username", "")).strip(),
             "displayName": str(payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
-            "advancingTeam": str(payload.get("advancingTeam") or payload["predictedWinner"]).strip(),
+            "advancingTeam": str(advancing_team).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
             "submittedAt": datetime.now(timezone.utc).isoformat(),
