@@ -1074,7 +1074,7 @@ main {
 .hero-leader-row strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
