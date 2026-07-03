@@ -331,6 +331,12 @@
     return { ...lastMatchesMeta };
   }
 
+  async function fetchMatchDetails(matchId) {
+    if (!matchId) throw new Error("Match id is required");
+    const payload = await requestJson(`/api/match_details?id=${encodeURIComponent(matchId)}&refresh=1&t=${Date.now()}`, { cache: "no-store" });
+    return payload;
+  }
+
   async function fetchLeaderboard() {
     try {
       const payload = await requestJson("/api/leaderboard");
@@ -723,6 +729,7 @@
     fallbackFlag,
     teamCountryCodes,
     fetchMatches,
+    fetchMatchDetails,
     getMatchesMeta,
     fetchLeaderboard,
     submitPrediction,

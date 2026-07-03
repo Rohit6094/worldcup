@@ -103,14 +103,14 @@ button {
 }
 
 .logo-mark {
-  display: grid;
-  place-items: center;
   width: 34px;
   height: 34px;
+  flex: 0 0 auto;
   border-radius: var(--radius);
-  background: linear-gradient(145deg, #27272a, #71717a);
-  color: white;
-  font-size: 0.9rem;
+  border: 1px solid rgba(212, 212, 216, 0.9);
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(39, 39, 42, 0.12);
+  object-fit: cover;
 }
 
 .nav-links {
@@ -1286,66 +1286,98 @@ main {
 }
 
 .stage-section .match-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 18px;
 }
 
 .match-card.detailed {
-  gap: 9px;
-  padding: 13px;
+  gap: 13px;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 238, 239, 0.95)),
+    var(--surface);
+  box-shadow: 0 18px 42px rgba(39, 39, 42, 0.1);
 }
 
 .match-card.detailed::before {
-  height: 3px;
+  height: 4px;
 }
 
 .match-card.detailed .card-meta {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .match-card.detailed .stage-chip,
 .match-card.detailed .status-badge {
-  min-height: 24px;
-  padding: 3px 8px;
-  font-size: 0.68rem;
+  min-height: 26px;
+  padding: 4px 9px;
+  font-size: 0.7rem;
 }
 
 .match-card.detailed .matchup {
-  min-height: 78px;
-  gap: 8px;
-  padding: 10px;
+  min-height: 112px;
+  gap: 12px;
+  padding: 14px;
+  background:
+    linear-gradient(90deg, rgba(228, 228, 231, 0.55), rgba(255, 255, 255, 0.92), rgba(228, 228, 231, 0.55)),
+    repeating-linear-gradient(0deg, rgba(39, 39, 42, 0.025) 0 1px, transparent 1px 22px);
 }
 
 .match-card.detailed .matchup .team {
-  gap: 7px;
-  font-size: 0.82rem;
+  gap: 9px;
+  font-size: 0.92rem;
+  line-height: 1.25;
 }
 
 .match-card.detailed .matchup .team img {
-  width: 38px;
-  height: 26px;
-  border-radius: 5px;
+  width: 50px;
+  height: 34px;
+  border-radius: 6px;
 }
 
 .match-card.detailed .matchup .score-pill {
-  min-width: 48px;
-  min-height: 32px;
-  border-radius: 9px;
-  font-size: 0.92rem;
+  min-width: 58px;
+  min-height: 38px;
+  border-radius: 10px;
+  font-size: 1rem;
 }
 
 .match-card.detailed .match-context {
   grid-template-columns: 1fr;
-  gap: 6px;
-  font-size: 0.78rem;
+  gap: 8px;
+  font-size: 0.82rem;
 }
 
 .match-card.detailed .match-context span {
-  padding: 7px 8px;
+  padding: 8px 10px;
 }
 
 .match-card.detailed .card-actions {
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.match-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.match-card.detailed .prediction-status {
+  width: 100%;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: rgba(228, 228, 231, 0.62);
+  font-size: 0.8rem;
+}
+
+.match-card.detailed .prediction-status.saved {
+  border-color: #a1a1aa;
+  background: linear-gradient(180deg, #f8f8f8, #e4e4e7);
+  color: #27272a;
 }
 
 .match-detail-modal {

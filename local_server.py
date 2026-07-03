@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from api.leaderboard import get_leaderboard_payload
+from api.match_details import get_match_details_payload
 from api.matches import get_matches_payload
 from api.lib.storage import delete_prediction, list_predictions, save_prediction
 from api.submit_prediction import validate_prediction
@@ -68,6 +69,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(200, get_matches_payload(force_refresh=force_refresh))
             return
 
+        if path == "/api/match_details":
+            query = parse_qs(urlparse(self.path).query)
+            match_id = query.get("id", [""])[0].strip()
+            try:
+                self.send_json(200, get_match_details_payload(match_id))
+            except Exception as error:
+                self.send_json(404, {"success": False, "error": str(error), "match": None})
+            return
+
         if path == "/api/leaderboard":
             self.send_json(200, get_leaderboard_payload())
             return
@@ -91,6 +101,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.path = "/signup.html"
         elif path == "/admin":
             self.path = "/admin.html"
+        elif path == "/predictions":
+            self.path = "/points.html"
         elif path == "/points":
             self.path = "/points.html"
         elif path == "/":
