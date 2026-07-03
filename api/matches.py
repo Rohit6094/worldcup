@@ -503,7 +503,9 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            payload = get_matches_payload()
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            force_refresh = query.get("refresh", ["0"])[0].lower() in {"1", "true", "yes"}
+            payload = get_matches_payload(force_refresh=force_refresh)
             json_response(
                 self,
                 200,

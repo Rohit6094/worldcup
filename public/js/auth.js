@@ -183,6 +183,7 @@
   function logout() {
     localStorage.removeItem(SESSION_KEY);
     renderAuthNav();
+    renderProtectedNavLinks();
   }
 
   function isAdmin() {
@@ -204,6 +205,7 @@
 
   function renderAuthNav() {
     const nav = document.querySelector("[data-auth-nav]");
+    renderProtectedNavLinks();
     if (!nav) return;
     const user = getCurrentUser();
     if (!user) {
@@ -221,7 +223,16 @@
     `;
     nav.querySelector("[data-logout]")?.addEventListener("click", () => {
       logout();
-      if (location.pathname.endsWith("admin.html")) location.href = "index.html";
+      if (location.pathname.endsWith("admin.html") || location.pathname.endsWith("leaderboard.html") || location.pathname.endsWith("points.html")) {
+        location.href = "index.html";
+      }
+    });
+  }
+
+  function renderProtectedNavLinks() {
+    const isLoggedIn = Boolean(getCurrentUser());
+    document.querySelectorAll("[data-auth-required]").forEach((link) => {
+      link.hidden = !isLoggedIn;
     });
   }
 
@@ -249,5 +260,6 @@
     requireAuth,
     requireAdmin,
     renderAuthNav,
+    renderProtectedNavLinks,
   };
 })();

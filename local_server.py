@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from api.leaderboard import get_leaderboard_payload
 from api.matches import get_matches_payload
@@ -63,7 +63,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path.rstrip("/") or "/"
 
         if path == "/api/matches":
-            self.send_json(200, get_matches_payload())
+            query = parse_qs(urlparse(self.path).query)
+            force_refresh = query.get("refresh", ["0"])[0].lower() in {"1", "true", "yes"}
+            self.send_json(200, get_matches_payload(force_refresh=force_refresh))
             return
 
         if path == "/api/leaderboard":
