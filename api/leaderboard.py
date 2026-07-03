@@ -13,12 +13,12 @@ def build_leaderboard_from_predictions():
     users = {}
 
     for user in list_users(include_private=False):
-        user_key = user.get("id") or user.get("email") or user.get("displayName")
+        user_key = user.get("id") or user.get("username") or user.get("email") or user.get("displayName")
         if not user_key:
             continue
         users[user_key] = {
             "userId": user.get("id", ""),
-            "displayName": user.get("displayName") or user.get("email") or "Unknown",
+            "displayName": user.get("displayName") or user.get("username") or user.get("email") or "Unknown",
             "points": 0,
             "correctWinners": 0,
             "exactScores": 0,
@@ -26,7 +26,7 @@ def build_leaderboard_from_predictions():
         }
 
     for prediction in predictions:
-        user_key = prediction.get("userId") or prediction.get("userEmail") or prediction.get("displayName") or "anonymous"
+        user_key = prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or prediction.get("displayName") or "anonymous"
         row = users.setdefault(
             user_key,
             {

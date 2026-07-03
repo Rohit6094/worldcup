@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function mergePredictions(primary, fallback) {
   const map = new Map();
   [...fallback, ...primary].forEach((prediction) => {
-    const key = `${prediction.userId || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
+    const key = `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
     map.set(key, prediction);
   });
   return Array.from(map.values());

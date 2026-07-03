@@ -28,7 +28,7 @@ class handler(BaseHTTPRequestHandler):
 
         match_id = str(payload.get("matchId", "")).strip()
         user_id = str(payload.get("userId", "")).strip()
-        user_email = str(payload.get("userEmail", "")).strip()
+        user_email = str(payload.get("username") or payload.get("userEmail", "")).strip()
         if not match_id or not (user_id or user_email):
             json_response(
                 self,

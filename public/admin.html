@@ -78,7 +78,7 @@
                 <input type="text" name="predictedWinner" required />
               </label>
               <label>
-                Home score
+                Home/team A score
                 <input
                   type="number"
                   name="homeScore"
@@ -88,13 +88,31 @@
                 />
               </label>
               <label>
-                Away score
+                Away/team B score
                 <input
                   type="number"
                   name="awayScore"
                   min="0"
                   step="1"
                   required
+                />
+              </label>
+              <label>
+                Penalty home/team A
+                <input
+                  type="number"
+                  name="penaltyHomeScore"
+                  min="0"
+                  step="1"
+                />
+              </label>
+              <label>
+                Penalty away/team B
+                <input
+                  type="number"
+                  name="penaltyAwayScore"
+                  min="0"
+                  step="1"
                 />
               </label>
             </div>
@@ -133,8 +151,8 @@
                 <input type="text" name="displayName" maxlength="80" required />
               </label>
               <label>
-                Email
-                <input type="email" name="email" required />
+                Username
+                <input type="text" name="username" autocomplete="username" required />
               </label>
               <label>
                 Role
@@ -148,7 +166,6 @@
                 <input
                   type="password"
                   name="password"
-                  minlength="10"
                   autocomplete="new-password"
                 />
               </label>

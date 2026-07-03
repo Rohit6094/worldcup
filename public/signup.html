@@ -30,7 +30,7 @@
         <div class="auth-copy">
           <p class="eyebrow">Create account</p>
           <h1>Save predictions under your name.</h1>
-          <p>Use a strong password. This demo stores account data only in your browser and never exposes football API keys to the frontend.</p>
+          <p>Create a username and password to save predictions across devices when server storage is configured.</p>
         </div>
         <div class="auth-card">
           <h2>Sign Up</h2>
@@ -40,22 +40,22 @@
               <input type="text" name="displayName" maxlength="80" autocomplete="name" required>
             </label>
             <label>
-              Email
-              <input type="email" name="email" autocomplete="email" required>
+              Username
+              <input type="text" name="username" autocomplete="username" required>
             </label>
             <label>
               Password
-              <input type="password" name="password" autocomplete="new-password" minlength="10" required>
+              <input type="password" name="password" autocomplete="new-password" required>
             </label>
             <label>
               Confirm password
-              <input type="password" name="confirmPassword" autocomplete="new-password" minlength="10" required>
+              <input type="password" name="confirmPassword" autocomplete="new-password" required>
             </label>
             <label>
               Admin invite code
               <input type="password" name="adminCode" autocomplete="off" placeholder="Optional">
             </label>
-            <p class="auth-hint">Password must include uppercase, lowercase, and a number.</p>
+            <p class="auth-hint">Use any password you prefer for this demo account.</p>
             <p class="form-error" data-auth-error role="alert"></p>
             <button class="btn btn-primary" type="submit">Create Account</button>
           </form>

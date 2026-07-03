@@ -30,14 +30,14 @@
         <div class="auth-copy">
           <p class="eyebrow">Secure demo login</p>
           <h1>Login to predict matches.</h1>
-          <p>Your demo password is hashed before it is stored in this browser. Production accounts still require server-side sessions, database storage, rate limiting, and email verification.</p>
+          <p>Your demo password is hashed server-side. Production accounts still require hardened sessions, rate limiting, and account recovery.</p>
         </div>
         <div class="auth-card">
           <h2>Login</h2>
           <form class="auth-form" data-login-form>
             <label>
-              Email
-              <input type="email" name="email" autocomplete="email" required>
+              Username
+              <input type="text" name="username" autocomplete="username" required>
             </label>
             <label>
               Password

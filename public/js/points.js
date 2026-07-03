@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function mergePredictions(primary, fallback) {
   const map = new Map();
   [...fallback, ...primary].forEach((prediction) => {
-    const key = `${prediction.userId || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
+    const key = `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
     map.set(key, prediction);
   });
   return Array.from(map.values()).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
@@ -28,7 +28,7 @@ function renderUserPredictions(rows, currentUser) {
     return;
   }
 
-  const userRows = rows.filter((row) => row.userId === currentUser.id || row.userEmail === currentUser.email);
+  const userRows = rows.filter((row) => row.userId === currentUser.id || row.userEmail === currentUser.email || row.username === currentUser.username);
   renderPredictionTable(container, userRows, "You have not submitted predictions yet.");
 }
 
@@ -63,9 +63,9 @@ function renderPredictionTable(container, rows, emptyMessage) {
             const result = row.match && row.match.status === "completed" ? WCApp.scoreText(row.match) : "Pending";
             return `
               <tr>
-                <td>${WCApp.escapeHtml(row.displayName || row.userEmail || "Unknown")}</td>
+                <td>${WCApp.escapeHtml(row.displayName || row.username || row.userEmail || "Unknown")}</td>
                 <td>${WCApp.escapeHtml(matchLabel)}</td>
-                <td>${WCApp.escapeHtml(row.predictedWinner)} (${row.homeScore}-${row.awayScore})</td>
+                <td>${WCApp.escapeHtml(row.predictedWinner)} (${WCApp.escapeHtml(WCApp.predictionScoreText(row))})</td>
                 <td>${WCApp.escapeHtml(result)}</td>
                 <td>${row.correctWinner ? "Yes" : "No"}</td>
                 <td>${row.exactScore ? "Yes" : "No"}</td>

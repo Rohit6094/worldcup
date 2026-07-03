@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     submitButton.disabled = true;
     submitButton.textContent = "Signing in...";
     const result = await WCAuth.login({
-      email: form.elements.email.value,
+      username: form.elements.username.value,
       password: form.elements.password.value,
     });
     submitButton.disabled = false;

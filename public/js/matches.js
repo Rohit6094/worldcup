@@ -147,7 +147,7 @@ function renderMatchCard(match) {
         </div>
         ${
           prediction
-            ? `<span class="prediction-status saved">Prediction saved: ${WCApp.escapeHtml(prediction.predictedWinner)} ${prediction.homeScore}-${prediction.awayScore}</span>`
+            ? `<span class="prediction-status saved">Prediction saved: ${WCApp.escapeHtml(prediction.predictedWinner)} ${WCApp.escapeHtml(WCApp.predictionScoreText(prediction))}</span>`
             : `<span class="prediction-status">No prediction yet</span>`
         }
       </div>
@@ -231,7 +231,7 @@ function renderMatchDetailsContent(content, match, details, source) {
       <div><dt>Kickoff</dt><dd>${WCApp.escapeHtml(WCApp.formatFullDateTime(match.date))}</dd></div>
       <div><dt>Venue</dt><dd>${WCApp.escapeHtml(match.venue || "Venue TBD")}${match.city ? `, ${WCApp.escapeHtml(match.city)}` : ""}</dd></div>
       <div><dt>Winner</dt><dd>${WCApp.escapeHtml(match.winner || "TBD")}</dd></div>
-      <div><dt>Your prediction</dt><dd>${prediction ? `${WCApp.escapeHtml(prediction.predictedWinner)} (${prediction.homeScore}-${prediction.awayScore})` : "Not submitted"}</dd></div>
+      <div><dt>Your prediction</dt><dd>${prediction ? `${WCApp.escapeHtml(prediction.predictedWinner)} (${WCApp.escapeHtml(WCApp.predictionScoreText(prediction))})` : "Not submitted"}</dd></div>
       <div><dt>Half time</dt><dd>${formatScoreBreakdown(scoreBreakdown.halfTime)}</dd></div>
       <div><dt>Duration</dt><dd>${WCApp.escapeHtml(scoreBreakdown.duration || "TBD")}</dd></div>
       <div><dt>Referee</dt><dd>${referees.length ? WCApp.escapeHtml(referees.map((referee) => referee.name).join(", ")) : "TBD"}</dd></div>

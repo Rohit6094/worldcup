@@ -37,7 +37,7 @@ function renderAdmin() {
 function mergePredictions(primary, fallback) {
   const map = new Map();
   [...fallback, ...primary].forEach((prediction) => {
-    const key = `${prediction.userId || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
+    const key = `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
     map.set(key, prediction);
   });
   return Array.from(map.values()).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
@@ -49,14 +49,14 @@ function renderAdminStats() {
     <article class="info-card"><strong>${adminState.users.length}</strong><p>Registered users</p></article>
     <article class="info-card"><strong>${adminState.predictions.length}</strong><p>Saved predictions</p></article>
     <article class="info-card"><strong>${adminState.matches.length}</strong><p>Loaded fixtures</p></article>
-    <article class="info-card"><strong>2 / 3</strong><p>Winner / exact score points</p></article>
+    <article class="info-card"><strong>1 / 3</strong><p>Winner / exact score points</p></article>
   `;
 }
 
 function renderUserOptions() {
   const select = document.querySelector("[data-prediction-user]");
   select.innerHTML = `<option value="">Select user</option>${adminState.users
-    .map((user) => `<option value="${WCApp.escapeHtml(user.id)}">${WCApp.escapeHtml(user.displayName)} (${WCApp.escapeHtml(user.email)})</option>`)
+    .map((user) => `<option value="${WCApp.escapeHtml(user.id)}">${WCApp.escapeHtml(user.displayName)} (${WCApp.escapeHtml(user.username || user.email || "no username")})</option>`)
     .join("")}`;
 }
 
@@ -73,7 +73,7 @@ async function saveUserFromForm(event) {
   const result = await WCAuth.adminSaveUser({
     id: form.elements.userId.value,
     displayName: form.elements.displayName.value,
-    email: form.elements.email.value,
+    username: form.elements.username.value,
     role: form.elements.role.value,
     password: form.elements.password.value,
   });
@@ -106,7 +106,7 @@ function editUser(userId) {
   const form = document.querySelector("[data-user-form]");
   form.elements.userId.value = user.id;
   form.elements.displayName.value = user.displayName;
-  form.elements.email.value = user.email;
+  form.elements.username.value = user.username || user.email || "";
   form.elements.role.value = user.role || "user";
   form.elements.password.value = "";
   form.querySelector("[data-user-form-title]").textContent = "Edit User";
@@ -144,20 +144,31 @@ async function savePredictionFromForm(event) {
 
   const homeScore = Number(form.elements.homeScore.value);
   const awayScore = Number(form.elements.awayScore.value);
+  const penaltyHomeRaw = form.elements.penaltyHomeScore.value;
+  const penaltyAwayRaw = form.elements.penaltyAwayScore.value;
+  const penaltyHomeScore = penaltyHomeRaw === "" ? null : Number(penaltyHomeRaw);
+  const penaltyAwayScore = penaltyAwayRaw === "" ? null : Number(penaltyAwayRaw);
   if (!Number.isInteger(homeScore) || homeScore < 0 || !Number.isInteger(awayScore) || awayScore < 0) {
     errorEl.textContent = "Scores must be non-negative whole numbers.";
+    return;
+  }
+  if ((penaltyHomeRaw !== "" || penaltyAwayRaw !== "") && (!Number.isInteger(penaltyHomeScore) || penaltyHomeScore < 0 || !Number.isInteger(penaltyAwayScore) || penaltyAwayScore < 0)) {
+    errorEl.textContent = "Penalty scores must be non-negative whole numbers.";
     return;
   }
 
   const prediction = {
     matchId: match.id,
     userId: user.id,
-    userEmail: user.email,
+    userEmail: user.username || user.email,
+    username: user.username || user.email,
     displayName: user.displayName,
     predictedWinner: form.elements.predictedWinner.value,
     advancingTeam: "",
     homeScore,
     awayScore,
+    penaltyHomeScore,
+    penaltyAwayScore,
     submittedAt: new Date().toISOString(),
   };
 
@@ -199,6 +210,8 @@ function editPrediction(index) {
   form.elements.predictedWinner.value = prediction.predictedWinner || "";
   form.elements.homeScore.value = prediction.homeScore ?? "";
   form.elements.awayScore.value = prediction.awayScore ?? "";
+  form.elements.penaltyHomeScore.value = prediction.penaltyHomeScore ?? "";
+  form.elements.penaltyAwayScore.value = prediction.penaltyAwayScore ?? "";
   form.querySelector("[data-prediction-form-title]").textContent = "Edit Prediction";
   form.scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -239,10 +252,10 @@ function renderPredictionTable() {
             const matchLabel = prediction.match ? `${prediction.match.homeTeam.name} vs ${prediction.match.awayTeam.name}` : prediction.matchId;
             return `
               <tr>
-                <td>${WCApp.escapeHtml(prediction.displayName || prediction.userEmail || "Unknown")}</td>
+                <td>${WCApp.escapeHtml(prediction.displayName || prediction.username || prediction.userEmail || "Unknown")}</td>
                 <td>${WCApp.escapeHtml(matchLabel)}</td>
                 <td>${WCApp.escapeHtml(prediction.predictedWinner)}</td>
-                <td>${prediction.homeScore}-${prediction.awayScore}</td>
+                <td>${WCApp.escapeHtml(WCApp.predictionScoreText(prediction))}</td>
                 <td><strong>${prediction.points}</strong></td>
                 <td class="table-actions">
                   <button class="btn btn-small btn-ghost" type="button" data-edit-prediction="${index}">Edit</button>
@@ -277,7 +290,7 @@ function renderUserTable() {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Email</th>
+            <th>Username</th>
             <th>Role</th>
             <th>Created</th>
             <th>Actions</th>
@@ -287,7 +300,7 @@ function renderUserTable() {
           ${adminState.users.map((user) => `
             <tr>
               <td>${WCApp.escapeHtml(user.displayName)}</td>
-              <td>${WCApp.escapeHtml(user.email)}</td>
+              <td>${WCApp.escapeHtml(user.username || user.email || "")}</td>
               <td>${WCApp.escapeHtml(user.role || "user")}</td>
               <td>${WCApp.escapeHtml(WCApp.formatDateTime(user.createdAt))}</td>
               <td class="table-actions">

@@ -12,7 +12,7 @@ def score_prediction(prediction, match):
         return {"points": 0, "correctWinner": False, "exactScore": False}
 
     exact_score = prediction.get("homeScore") == home_score and prediction.get("awayScore") == away_score
-    predicted_winner = prediction.get("predictedWinner")
+    predicted_winner = prediction.get("advancingTeam") if prediction.get("predictedWinner") == "Draw / Penalties" else prediction.get("predictedWinner")
     actual_winner = match.get("winner")
     correct_winner = bool(actual_winner and predicted_winner == actual_winner)
 

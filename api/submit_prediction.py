@@ -27,6 +27,17 @@ def validate_prediction(payload):
         return "homeScore must be a non-negative integer"
     if not is_non_negative_integer(payload.get("awayScore")):
         return "awayScore must be a non-negative integer"
+    if payload.get("predictedWinner") == "Draw / Penalties":
+        if not str(payload.get("advancingTeam", "")).strip():
+            return "advancingTeam is required for penalty predictions"
+        if payload.get("homeScore") != payload.get("awayScore"):
+            return "main score must be tied for penalty predictions"
+        if not is_non_negative_integer(payload.get("penaltyHomeScore")):
+            return "penaltyHomeScore must be a non-negative integer"
+        if not is_non_negative_integer(payload.get("penaltyAwayScore")):
+            return "penaltyAwayScore must be a non-negative integer"
+        if payload.get("penaltyHomeScore") == payload.get("penaltyAwayScore"):
+            return "penalty score must have a winning team"
     return None
 
 
@@ -53,11 +64,14 @@ class handler(BaseHTTPRequestHandler):
             "matchId": str(payload["matchId"]).strip(),
             "userId": str(payload.get("userId", "")).strip(),
             "userEmail": str(payload.get("userEmail", "")).strip(),
+            "username": str(payload.get("username", "")).strip(),
             "displayName": str(payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
             "advancingTeam": str(payload.get("advancingTeam", "")).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
+            "penaltyHomeScore": payload.get("penaltyHomeScore"),
+            "penaltyAwayScore": payload.get("penaltyAwayScore"),
             "submittedAt": datetime.now(timezone.utc).isoformat(),
         }
 

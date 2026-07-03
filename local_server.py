@@ -150,11 +150,14 @@ class LocalHandler(SimpleHTTPRequestHandler):
             "matchId": str(payload["matchId"]).strip(),
             "userId": str(payload.get("userId", "")).strip(),
             "userEmail": str(payload.get("userEmail", "")).strip(),
+            "username": str(payload.get("username", "")).strip(),
             "displayName": str(payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
             "advancingTeam": str(payload.get("advancingTeam", "")).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
+            "penaltyHomeScore": payload.get("penaltyHomeScore"),
+            "penaltyAwayScore": payload.get("penaltyAwayScore"),
             "submittedAt": datetime.now(timezone.utc).isoformat(),
         }
         try:
@@ -191,7 +194,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
         match_id = str(payload.get("matchId", "")).strip()
         user_id = str(payload.get("userId", "")).strip()
-        user_email = str(payload.get("userEmail", "")).strip()
+        user_email = str(payload.get("username") or payload.get("userEmail", "")).strip()
         if not match_id or not (user_id or user_email):
             self.send_json(400, {"success": False, "error": "matchId and userId or userEmail are required"})
             return

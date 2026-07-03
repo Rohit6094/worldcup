@@ -29,10 +29,11 @@ def handle_auth_post(payload):
             payload.get("email", ""),
             payload.get("password", ""),
             role,
+            username=payload.get("username", ""),
         )
 
     if action == "login":
-        return authenticate_user(payload.get("email", ""), payload.get("password", ""))
+        return authenticate_user(payload.get("email", ""), payload.get("password", ""), username=payload.get("username", ""))
 
     if action == "adminSaveUser":
         return admin_save_user(
@@ -41,6 +42,7 @@ def handle_auth_post(payload):
             email=payload.get("email", ""),
             role=payload.get("role", "user"),
             password=payload.get("password", ""),
+            username=payload.get("username", ""),
         )
 
     return {"success": False, "error": "Unsupported auth action."}

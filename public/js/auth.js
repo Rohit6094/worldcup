@@ -15,17 +15,12 @@
     localStorage.setItem(USERS_KEY, JSON.stringify(users || []));
   }
 
-  function normalizeEmail(email) {
-    return String(email || "").trim().toLowerCase();
+  function normalizeUsername(username) {
+    return String(username || "").trim().toLowerCase();
   }
 
   function validatePassword(password) {
-    const value = String(password || "");
-    if (value.length < 10) return "Use at least 10 characters.";
-    if (!/[A-Z]/.test(value)) return "Add at least one uppercase letter.";
-    if (!/[a-z]/.test(value)) return "Add at least one lowercase letter.";
-    if (!/[0-9]/.test(value)) return "Add at least one number.";
-    return "";
+    return String(password || "").length ? "" : "Enter a password.";
   }
 
   async function requestAuth(url, options = {}) {
@@ -52,11 +47,11 @@
     }
   }
 
-  async function signUp({ displayName, email, password, confirmPassword, adminCode }) {
-    const cleanEmail = normalizeEmail(email);
+  async function signUp({ displayName, username, password, confirmPassword, adminCode }) {
+    const cleanUsername = normalizeUsername(username);
     const cleanName = String(displayName || "").trim();
     if (!cleanName) return { success: false, error: "Enter your display name." };
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { success: false, error: "Enter a valid email address." };
+    if (!cleanUsername) return { success: false, error: "Enter a username." };
     if (password !== confirmPassword) return { success: false, error: "Passwords do not match." };
     const passwordError = validatePassword(password);
     if (passwordError) return { success: false, error: passwordError };
@@ -67,7 +62,7 @@
         body: JSON.stringify({
           action: "signup",
           displayName: cleanName,
-          email: cleanEmail,
+          username: cleanUsername,
           password,
           adminCode,
         }),
@@ -81,11 +76,11 @@
     }
   }
 
-  async function adminSaveUser({ id, displayName, email, role, password }) {
+  async function adminSaveUser({ id, displayName, username, role, password }) {
     const cleanName = String(displayName || "").trim().slice(0, 80);
-    const cleanEmail = normalizeEmail(email);
+    const cleanUsername = normalizeUsername(username);
     if (!cleanName) return { success: false, error: "Display name is required." };
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { success: false, error: "Valid email is required." };
+    if (!cleanUsername) return { success: false, error: "Username is required." };
     if (!id || password) {
       const passwordError = validatePassword(password);
       if (passwordError) return { success: false, error: passwordError };
@@ -98,7 +93,7 @@
           action: "adminSaveUser",
           id,
           displayName: cleanName,
-          email: cleanEmail,
+          username: cleanUsername,
           role,
           password,
         }),
@@ -127,16 +122,16 @@
     }
   }
 
-  async function login({ email, password }) {
-    const cleanEmail = normalizeEmail(email);
-    if (!cleanEmail || !password) return { success: false, error: "Email or password is incorrect." };
+  async function login({ username, password }) {
+    const cleanUsername = normalizeUsername(username);
+    if (!cleanUsername || !password) return { success: false, error: "Username or password is incorrect." };
 
     try {
       const result = await requestAuth("/api/auth", {
         method: "POST",
         body: JSON.stringify({
           action: "login",
-          email: cleanEmail,
+          username: cleanUsername,
           password,
         }),
       });
@@ -145,7 +140,7 @@
       renderAuthNav();
       return result;
     } catch (error) {
-      return { success: false, error: error.message || "Email or password is incorrect." };
+      return { success: false, error: error.message || "Username or password is incorrect." };
     }
   }
 
@@ -154,7 +149,8 @@
     return {
       id: user.id,
       displayName: user.displayName,
-      email: user.email,
+      username: user.username || user.email,
+      email: user.email || user.username,
       role: user.role || "user",
     };
   }
@@ -164,7 +160,8 @@
       SESSION_KEY,
       JSON.stringify({
         userId: user.id,
-        email: user.email,
+        username: user.username || user.email,
+        email: user.email || user.username,
         user: publicUser(user),
         startedAt: new Date().toISOString(),
       })

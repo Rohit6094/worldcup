@@ -172,7 +172,7 @@ To create a demo admin user, enter this invite code during signup:
 WC26-ADMIN-DEMO
 ```
 
-Production accounts need server-side sessions, durable user storage, role checks, rate limiting, password reset, and email verification.
+Production accounts need server-side sessions, durable user storage, role checks, rate limiting, and password reset.
 
 Admin page:
 
@@ -195,7 +195,7 @@ It shows two sections:
 
 ## Scoring
 
-- Correct winner: 2 points
+- Correct winner: 1 point
 - Exact score: 3 points
 - Participation points: 0
 - Bonus points: 0
@@ -210,5 +210,5 @@ Future improvements:
 - Add a persistent database
 - Add an admin panel
 - Lock predictions after kickoff
-- Add email verification
+- Add account recovery flows
 - Add advanced scoring rules

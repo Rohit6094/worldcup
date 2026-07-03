@@ -378,6 +378,7 @@
         body: JSON.stringify({
           matchId: prediction.matchId,
           userId: prediction.userId || "",
+          username: prediction.username || "",
           userEmail: prediction.userEmail || "",
         }),
       });
@@ -389,7 +390,7 @@
 
   function removePredictionLocally(prediction) {
     const predictions = getSavedPredictions().filter((item) => {
-      const sameUser = (item.userId || item.userEmail || item.displayName) === (prediction.userId || prediction.userEmail || prediction.displayName);
+      const sameUser = (item.userId || item.username || item.userEmail || item.displayName) === (prediction.userId || prediction.username || prediction.userEmail || prediction.displayName);
       return !(sameUser && item.matchId === prediction.matchId);
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
@@ -402,9 +403,10 @@
     const home = match.score?.home;
     const away = match.score?.away;
     const exactScore = Number.isInteger(home) && Number.isInteger(away) && prediction.homeScore === home && prediction.awayScore === away;
-    const correctWinner = Boolean(match.winner && prediction.predictedWinner === match.winner);
+    const predictedWinner = prediction.predictedWinner === "Draw / Penalties" ? prediction.advancingTeam : prediction.predictedWinner;
+    const correctWinner = Boolean(match.winner && predictedWinner === match.winner);
     return {
-      points: (correctWinner ? 2 : 0) + (exactScore ? 3 : 0),
+      points: (correctWinner ? 1 : 0) + (exactScore ? 3 : 0),
       correctWinner,
       exactScore,
     };
@@ -433,10 +435,10 @@
     });
 
     buildPredictionRows(predictions, matches).forEach((prediction) => {
-      const key = prediction.userId || prediction.userEmail || prediction.displayName || "anonymous";
+      const key = prediction.userId || prediction.username || prediction.userEmail || prediction.displayName || "anonymous";
       const row = rows.get(key) || {
         userId: prediction.userId || "",
-        displayName: prediction.displayName || prediction.userEmail || "Unknown",
+        displayName: prediction.displayName || prediction.username || prediction.userEmail || "Unknown",
         points: 0,
         correctWinners: 0,
         exactScores: 0,
@@ -574,12 +576,22 @@
             </label>
             <div class="score-inputs">
               <label>
-                Home goals
+                <span data-home-score-label>Home goals</span>
                 <input type="number" name="homeScore" min="0" step="1" inputmode="numeric" required>
               </label>
               <label>
-                Away goals
+                <span data-away-score-label>Away goals</span>
                 <input type="number" name="awayScore" min="0" step="1" inputmode="numeric" required>
+              </label>
+            </div>
+            <div class="score-inputs penalty-score-inputs" data-penalty-score-wrap hidden>
+              <label>
+                <span data-penalty-home-score-label>Home penalties</span>
+                <input type="number" name="penaltyHomeScore" min="0" step="1" inputmode="numeric">
+              </label>
+              <label>
+                <span data-penalty-away-score-label>Away penalties</span>
+                <input type="number" name="penaltyAwayScore" min="0" step="1" inputmode="numeric">
               </label>
             </div>
             <p class="form-error" data-form-error role="alert"></p>
@@ -640,6 +652,12 @@
     form.elements.advancingTeam.value = existing.advancingTeam || "";
     form.elements.homeScore.value = existing.homeScore ?? "";
     form.elements.awayScore.value = existing.awayScore ?? "";
+    form.elements.penaltyHomeScore.value = existing.penaltyHomeScore ?? "";
+    form.elements.penaltyAwayScore.value = existing.penaltyAwayScore ?? "";
+    form.querySelector("[data-home-score-label]").textContent = `${match.homeTeam?.name || "Home"} goals`;
+    form.querySelector("[data-away-score-label]").textContent = `${match.awayTeam?.name || "Away"} goals`;
+    form.querySelector("[data-penalty-home-score-label]").textContent = `${match.homeTeam?.name || "Home"} penalties`;
+    form.querySelector("[data-penalty-away-score-label]").textContent = `${match.awayTeam?.name || "Away"} penalties`;
     form.dataset.matchId = match.id;
     form.querySelector("[data-form-error]").textContent = "";
     updateAdvancingVisibility(form);
@@ -650,6 +668,10 @@
       event.preventDefault();
       const homeScore = Number(form.elements.homeScore.value);
       const awayScore = Number(form.elements.awayScore.value);
+      const penaltyHomeRaw = form.elements.penaltyHomeScore.value;
+      const penaltyAwayRaw = form.elements.penaltyAwayScore.value;
+      const penaltyHomeScore = penaltyHomeRaw === "" ? null : Number(penaltyHomeRaw);
+      const penaltyAwayScore = penaltyAwayRaw === "" ? null : Number(penaltyAwayRaw);
       const errorEl = form.querySelector("[data-form-error]");
 
       if (!form.elements.predictedWinner.value || !form.elements.displayName.value.trim()) {
@@ -668,16 +690,29 @@
         errorEl.textContent = "Select the team advancing after penalties.";
         return;
       }
+      if (form.elements.predictedWinner.value === "Draw / Penalties") {
+        if (!Number.isInteger(penaltyHomeScore) || penaltyHomeScore < 0 || !Number.isInteger(penaltyAwayScore) || penaltyAwayScore < 0) {
+          errorEl.textContent = "Penalty scores must be non-negative whole numbers.";
+          return;
+        }
+        if (penaltyHomeScore === penaltyAwayScore) {
+          errorEl.textContent = "Penalty score must have a winning team.";
+          return;
+        }
+      }
 
       const prediction = {
         matchId: match.id,
         userId: currentUser.id,
-        userEmail: currentUser.email,
+        userEmail: currentUser.username || currentUser.email,
+        username: currentUser.username || currentUser.email,
         displayName: currentUser.displayName,
         predictedWinner: form.elements.predictedWinner.value,
         advancingTeam: form.elements.predictedWinner.value === "Draw / Penalties" ? form.elements.advancingTeam.value : "",
         homeScore,
         awayScore,
+        penaltyHomeScore: form.elements.predictedWinner.value === "Draw / Penalties" ? penaltyHomeScore : null,
+        penaltyAwayScore: form.elements.predictedWinner.value === "Draw / Penalties" ? penaltyAwayScore : null,
         submittedAt: new Date().toISOString(),
       };
 
@@ -713,16 +748,33 @@
 
   function updateAdvancingVisibility(form) {
     const wrap = form.querySelector("[data-advancing-wrap]");
+    const penaltyWrap = form.querySelector("[data-penalty-score-wrap]");
     const needsAdvancingTeam = form.elements.predictedWinner.value === "Draw / Penalties";
     wrap.hidden = !needsAdvancingTeam;
+    penaltyWrap.hidden = !needsAdvancingTeam;
     form.elements.advancingTeam.required = needsAdvancingTeam;
+    form.elements.penaltyHomeScore.required = needsAdvancingTeam;
+    form.elements.penaltyAwayScore.required = needsAdvancingTeam;
     if (!needsAdvancingTeam) form.elements.advancingTeam.value = "";
+    if (!needsAdvancingTeam) {
+      form.elements.penaltyHomeScore.value = "";
+      form.elements.penaltyAwayScore.value = "";
+    }
   }
 
   function scoreText(match) {
     const home = match?.score?.home;
     const away = match?.score?.away;
     return Number.isInteger(home) && Number.isInteger(away) ? `${home} - ${away}` : "vs";
+  }
+
+  function predictionScoreText(prediction) {
+    if (!prediction) return "";
+    const baseScore = `${prediction.homeScore}-${prediction.awayScore}`;
+    if (Number.isInteger(prediction.penaltyHomeScore) && Number.isInteger(prediction.penaltyAwayScore)) {
+      return `${baseScore}, pens ${prediction.penaltyHomeScore}-${prediction.penaltyAwayScore}`;
+    }
+    return baseScore;
   }
 
   window.WCApp = {
@@ -748,6 +800,7 @@
     openPredictionModal,
     showToast,
     scoreText,
+    predictionScoreText,
     escapeHtml,
   };
 })();

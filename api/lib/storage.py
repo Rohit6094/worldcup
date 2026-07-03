@@ -1,7 +1,6 @@
 import json
 import os
 import hashlib
-import re
 import secrets
 import uuid
 from datetime import datetime, timezone
@@ -14,12 +13,13 @@ from .http_client import request_json
 PREDICTION_KEYS_SET = "wc2026:predictions:keys"
 USER_KEYS_SET = "wc2026:users:keys"
 USER_EMAIL_PREFIX = "wc2026:user-email:"
+USER_USERNAME_PREFIX = "wc2026:user-username:"
 USERS_FILE = DATA_DIR / "users.json"
 PREDICTIONS_FILE = DATA_DIR / "predictions.json"
 
 
 def prediction_key(prediction):
-    user_id = prediction.get("userId") or prediction.get("userEmail") or "anonymous"
+    user_id = prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or "anonymous"
     return f"wc2026:prediction:{user_id}:{prediction['matchId']}"
 
 
@@ -97,8 +97,12 @@ def delete_prediction(match_id, user_id="", user_email=""):
     return {"deleted": True, "storage": "vercel-kv", "key": key}
 
 
+def normalize_username(username):
+    return str(username or "").strip().lower()
+
+
 def normalize_email(email):
-    return str(email or "").strip().lower()
+    return normalize_username(email)
 
 
 def public_user(user):
@@ -107,7 +111,8 @@ def public_user(user):
     return {
         "id": user.get("id", ""),
         "displayName": user.get("displayName", ""),
-        "email": user.get("email", ""),
+        "username": user.get("username") or user.get("email", ""),
+        "email": user.get("email") or user.get("username", ""),
         "role": user.get("role", "user"),
         "createdAt": user.get("createdAt", ""),
         "updatedAt": user.get("updatedAt", ""),
@@ -116,16 +121,7 @@ def public_user(user):
 
 
 def validate_password(password):
-    value = str(password or "")
-    if len(value) < 10:
-        return "Use at least 10 characters."
-    if not re.search(r"[A-Z]", value):
-        return "Add at least one uppercase letter."
-    if not re.search(r"[a-z]", value):
-        return "Add at least one lowercase letter."
-    if not re.search(r"[0-9]", value):
-        return "Add at least one number."
-    return ""
+    return "" if str(password or "") else "Enter a password."
 
 
 def hash_password(password, salt):
@@ -138,6 +134,10 @@ def user_key(user_id):
 
 def email_key(email):
     return f"{USER_EMAIL_PREFIX}{normalize_email(email)}"
+
+
+def username_key(username):
+    return f"{USER_USERNAME_PREFIX}{normalize_username(username)}"
 
 
 def read_local_users():
@@ -211,10 +211,28 @@ def find_user_by_email(email, include_private=True):
     return None
 
 
+def find_user_by_username(username, include_private=True):
+    clean_username = normalize_username(username)
+    if not clean_username:
+        return None
+    if is_vercel_kv_configured():
+        index = kv_command(["GET", username_key(clean_username)])
+        user_id = (index or {}).get("result")
+        if not user_id:
+            user = find_user_by_email(clean_username, include_private=True)
+            return user if include_private else public_user(user)
+        return find_user_by_id(user_id, include_private=include_private)
+    for user in read_local_users():
+        if (user.get("username") or user.get("email")) == clean_username:
+            return user if include_private else public_user(user)
+    return None
+
+
 def persist_user(user):
     if is_vercel_kv_configured():
         kv_command(["SET", user_key(user["id"]), json.dumps(user, ensure_ascii=False)])
-        kv_command(["SET", email_key(user["email"]), user["id"]])
+        kv_command(["SET", username_key(user.get("username") or user.get("email")), user["id"]])
+        kv_command(["SET", email_key(user.get("email") or user.get("username")), user["id"]])
         kv_command(["SADD", USER_KEYS_SET, user_key(user["id"])])
         return user
 
@@ -224,25 +242,26 @@ def persist_user(user):
     return user
 
 
-def create_user(display_name, email, password, role="user"):
+def create_user(display_name, email="", password="", role="user", username=""):
     clean_name = str(display_name or "").strip()[:80]
-    clean_email = normalize_email(email)
+    clean_username = normalize_username(username or email)
     clean_role = "admin" if role == "admin" else "user"
     if not clean_name:
         return {"success": False, "error": "Enter your display name."}
-    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", clean_email):
-        return {"success": False, "error": "Enter a valid email address."}
+    if not clean_username:
+        return {"success": False, "error": "Enter a username."}
     password_error = validate_password(password)
     if password_error:
         return {"success": False, "error": password_error}
-    if find_user_by_email(clean_email):
-        return {"success": False, "error": "An account already exists for this email."}
+    if find_user_by_username(clean_username):
+        return {"success": False, "error": "An account already exists for this username."}
 
     salt = secrets.token_hex(16)
     user = {
         "id": str(uuid.uuid4()),
         "displayName": clean_name,
-        "email": clean_email,
+        "username": clean_username,
+        "email": clean_username,
         "passwordHash": hash_password(password, salt),
         "salt": salt,
         "role": clean_role,
@@ -252,37 +271,39 @@ def create_user(display_name, email, password, role="user"):
     return {"success": True, "user": public_user(user)}
 
 
-def authenticate_user(email, password):
-    user = find_user_by_email(email, include_private=True)
+def authenticate_user(email="", password="", username=""):
+    user = find_user_by_username(username or email, include_private=True)
     if not user:
-        return {"success": False, "error": "Email or password is incorrect."}
+        return {"success": False, "error": "Username or password is incorrect."}
     if hash_password(password, user.get("salt", "")) != user.get("passwordHash"):
-        return {"success": False, "error": "Email or password is incorrect."}
+        return {"success": False, "error": "Username or password is incorrect."}
     user["lastLoginAt"] = datetime.now(timezone.utc).isoformat()
     persist_user(user)
     return {"success": True, "user": public_user(user)}
 
 
-def admin_save_user(user_id="", display_name="", email="", role="user", password=""):
+def admin_save_user(user_id="", display_name="", email="", role="user", password="", username=""):
     clean_id = str(user_id or "").strip()
     clean_name = str(display_name or "").strip()[:80]
-    clean_email = normalize_email(email)
+    clean_username = normalize_username(username or email)
     clean_role = "admin" if role == "admin" else "user"
     if not clean_name:
         return {"success": False, "error": "Display name is required."}
-    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", clean_email):
-        return {"success": False, "error": "Valid email is required."}
+    if not clean_username:
+        return {"success": False, "error": "Username is required."}
 
     existing = find_user_by_id(clean_id, include_private=True) if clean_id else None
-    email_owner = find_user_by_email(clean_email, include_private=True)
-    if email_owner and email_owner.get("id") != clean_id:
-        return {"success": False, "error": "That email is already in use."}
+    username_owner = find_user_by_username(clean_username, include_private=True)
+    if username_owner and username_owner.get("id") != clean_id:
+        return {"success": False, "error": "That username is already in use."}
 
     if existing:
         old_email = existing.get("email", "")
+        old_username = existing.get("username", "")
         existing.update({
             "displayName": clean_name,
-            "email": clean_email,
+            "username": clean_username,
+            "email": clean_username,
             "role": clean_role,
             "updatedAt": datetime.now(timezone.utc).isoformat(),
         })
@@ -293,11 +314,13 @@ def admin_save_user(user_id="", display_name="", email="", role="user", password
             existing["salt"] = secrets.token_hex(16)
             existing["passwordHash"] = hash_password(password, existing["salt"])
         persist_user(existing)
-        if is_vercel_kv_configured() and old_email and old_email != clean_email:
+        if is_vercel_kv_configured() and old_email and old_email != clean_username:
             kv_command(["DEL", email_key(old_email)])
+        if is_vercel_kv_configured() and old_username and old_username != clean_username:
+            kv_command(["DEL", username_key(old_username)])
         return {"success": True, "user": public_user(existing)}
 
-    return create_user(clean_name, clean_email, password, clean_role)
+    return create_user(clean_name, password=password, role=clean_role, username=clean_username)
 
 
 def delete_user(user_id):
@@ -310,6 +333,7 @@ def delete_user(user_id):
         kv_command(["DEL", key])
         kv_command(["SREM", USER_KEYS_SET, key])
         kv_command(["DEL", email_key(user.get("email", ""))])
+        kv_command(["DEL", username_key(user.get("username") or user.get("email", ""))])
         return {"deleted": True, "storage": "vercel-kv"}
 
     users = [item for item in read_local_users() if item.get("id") != user_id]

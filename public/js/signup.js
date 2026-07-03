@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     submitButton.textContent = "Creating account...";
     const result = await WCAuth.signUp({
       displayName: form.elements.displayName.value,
-      email: form.elements.email.value,
+      username: form.elements.username.value,
       password: form.elements.password.value,
       confirmPassword: form.elements.confirmPassword.value,
       adminCode: form.elements.adminCode.value,
