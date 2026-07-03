@@ -149,10 +149,10 @@ Runtime behavior:
 - `/api/matches?refresh=1` bypasses the app match cache and fetches fresh provider data immediately.
 - If Vercel KV is configured, match data is also cached across serverless invocations.
 - If a provider request fails, the API can serve the last known good KV match snapshot.
-- `/api/auth` stores and reads shared users from Vercel KV when configured.
-- `/api/submit_prediction` stores predictions in Vercel KV when configured.
-- `/api/predictions` reads stored Vercel KV predictions for the admin page.
-- Without KV, the local Python server stores users and predictions in `data/users.json` and `data/predictions.json`.
+- `/api/auth` stores shared users and server-side login sessions in Vercel KV when configured.
+- `/api/submit_prediction` requires a login session and stores predictions in Vercel KV when configured.
+- `/api/predictions` requires a login session, reads stored Vercel KV predictions, and allows deletes only for the owner or an admin.
+- Without KV, the local Python server stores users, sessions, and predictions in `data/users.json`, `data/sessions.json`, and `data/predictions.json`.
 - Google Sheets receives an append-only copy of predictions when configured.
 
 Force a live match refresh:
@@ -164,7 +164,7 @@ Vercel: https://your-domain.vercel.app/api/matches?refresh=1
 
 ## Demo Accounts
 
-Login, signup, prediction ownership, and admin access are demo API features. Passwords are salted and hashed server-side, but this is still not production authentication.
+Login, signup, prediction ownership, and admin access use server-side session tokens. Passwords are salted and hashed server-side. For a high-stakes production app, replace this lightweight auth with a managed auth provider and add rate limiting, password reset, audit logging, and CSRF protection.
 
 To create a demo admin user, enter this invite code during signup:
 
@@ -172,7 +172,7 @@ To create a demo admin user, enter this invite code during signup:
 WC26-ADMIN-DEMO
 ```
 
-Production accounts need server-side sessions, durable user storage, role checks, rate limiting, and password reset.
+Production accounts need durable user storage, rate limiting, password reset, audit logging, and abuse monitoring.
 
 Admin page:
 
@@ -180,7 +180,7 @@ Admin page:
 /admin.html
 ```
 
-The admin page supports CRUD for shared demo users and prediction CRUD that syncs to Vercel KV when configured. This is an admin UI demo, not production authorization.
+The admin page supports CRUD for shared users and prediction CRUD that syncs to Vercel KV when configured. Admin mutations require an admin session token.
 
 Read-only points page:
 
@@ -209,9 +209,9 @@ Vercel serverless functions should not be used for persistent file writes. A pro
 
 Future improvements:
 
-- Add real authentication
-- Add a persistent database
-- Add an admin panel
-- Lock predictions after kickoff
+- Replace lightweight auth with a managed auth provider
+- Add a relational database for long-term reporting
+- Add admin audit logs
+- Add password reset and email verification
 - Add account recovery flows
 - Add advanced scoring rules

@@ -5,13 +5,13 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from api.auth import get_auth_payload, handle_auth_delete, handle_auth_post
+from api.auth import authenticated_user_from_headers, get_auth_payload, handle_auth_delete, handle_auth_post
 from api.lib.config import is_vercel_kv_configured
 from api.leaderboard import get_leaderboard_payload
 from api.match_details import get_match_details_payload
 from api.matches import get_matches_payload
 from api.lib.storage import delete_prediction, list_predictions, save_prediction
-from api.submit_prediction import validate_prediction
+from api.submit_prediction import validate_prediction, validate_prediction_cutoff
 
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -46,7 +46,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         super().end_headers()
 
@@ -85,6 +85,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/predictions":
+            requester = authenticated_user_from_headers(self.headers)
+            if not requester:
+                self.send_json(401, {"success": False, "error": "Login is required to view predictions"})
+                return
             predictions = list_predictions()
             self.send_json(200, {"source": "vercel-kv" if is_vercel_kv_configured() else "local-json", "predictions": predictions})
             return
@@ -126,7 +130,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json(400, {"success": False, "error": "Invalid JSON body"})
                 return
 
-            result = handle_auth_post(payload)
+            result = handle_auth_post(payload, authenticated_user_from_headers(self.headers))
             self.send_json(200 if result.get("success") else 400, result)
             return
 
@@ -141,6 +145,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(400, {"success": False, "error": "Invalid JSON body"})
             return
 
+        requester = authenticated_user_from_headers(self.headers)
+        if not requester:
+            self.send_json(401, {"success": False, "error": "Login is required to submit predictions"})
+            return
+
+        payload["displayName"] = requester.get("displayName") or requester.get("username") or payload.get("displayName", "")
         error = validate_prediction(payload)
         if error:
             self.send_json(400, {"success": False, "error": error})
@@ -149,10 +159,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
         advancing_team = payload["advancingTeam"] if payload["predictedWinner"] == "Draw / Penalties" else payload["predictedWinner"]
         prediction = {
             "matchId": str(payload["matchId"]).strip(),
-            "userId": str(payload.get("userId", "")).strip(),
-            "userEmail": str(payload.get("userEmail", "")).strip(),
-            "username": str(payload.get("username", "")).strip(),
-            "displayName": str(payload["displayName"]).strip()[:80],
+            "userId": str(requester.get("id", "")).strip(),
+            "userEmail": str(requester.get("email") or requester.get("username") or "").strip(),
+            "username": str(requester.get("username") or requester.get("email") or "").strip(),
+            "displayName": str(requester.get("displayName") or payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
             "advancingTeam": str(advancing_team).strip(),
             "homeScore": payload["homeScore"],
@@ -176,7 +186,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json(400, {"success": False, "error": "Invalid JSON body"})
                 return
 
-            result = handle_auth_delete(payload)
+            result = handle_auth_delete(payload, authenticated_user_from_headers(self.headers))
             self.send_json(200 if result.get("success") else 400, result)
             return
 
@@ -197,6 +207,25 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if not match_id or not (user_id or user_email):
             self.send_json(400, {"success": False, "error": "matchId and userId or userEmail are required"})
             return
+
+        requester = authenticated_user_from_headers(self.headers)
+        requester_keys = {
+            str((requester or {}).get("id") or "").strip().lower(),
+            str((requester or {}).get("username") or "").strip().lower(),
+            str((requester or {}).get("email") or "").strip().lower(),
+        } - {""}
+        target_keys = {user_id.strip().lower(), user_email.strip().lower()} - {""}
+        if not requester:
+            self.send_json(401, {"success": False, "error": "Login is required to delete predictions"})
+            return
+        if requester.get("role") != "admin" and not requester_keys.intersection(target_keys):
+            self.send_json(403, {"success": False, "error": "You can only delete your own predictions"})
+            return
+        if requester.get("role") != "admin":
+            cutoff_error = validate_prediction_cutoff(match_id)
+            if cutoff_error and cutoff_error != "Match could not be found":
+                self.send_json(400, {"success": False, "error": cutoff_error, "code": "prediction_locked"})
+                return
 
         result = delete_prediction(match_id, user_id, user_email)
         self.send_json(200, {"success": True, **result})

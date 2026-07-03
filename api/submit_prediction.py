@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
+from api.auth import authenticated_user_from_headers
 from api.lib.responses import error_payload, json_response, parse_json_body
 from api.lib.storage import save_prediction
 from api.matches import get_matches_payload
@@ -45,6 +46,10 @@ def validate_prediction_cutoff(match_id):
     if datetime.now(timezone.utc) >= cutoff:
         return "Predictions close one hour before kickoff"
     return None
+
+
+def is_prediction_open_for_match(match_id):
+    return validate_prediction_cutoff(match_id) is None
 
 
 def validate_score_matches_winner(payload):
@@ -115,6 +120,12 @@ class handler(BaseHTTPRequestHandler):
             json_response(self, 400, error_payload("Invalid JSON body", "invalid_json"), methods="POST, OPTIONS")
             return
 
+        requester = authenticated_user_from_headers(self.headers)
+        if not requester:
+            json_response(self, 401, error_payload("Login is required to submit predictions", "auth_required"), methods="POST, OPTIONS")
+            return
+
+        payload["displayName"] = requester.get("displayName") or requester.get("username") or payload.get("displayName", "")
         error = validate_prediction(payload)
         if error:
             json_response(self, 400, error_payload(error, "validation_error"), methods="POST, OPTIONS")
@@ -123,10 +134,10 @@ class handler(BaseHTTPRequestHandler):
         advancing_team = payload["advancingTeam"] if payload["predictedWinner"] == "Draw / Penalties" else payload["predictedWinner"]
         prediction = {
             "matchId": str(payload["matchId"]).strip(),
-            "userId": str(payload.get("userId", "")).strip(),
-            "userEmail": str(payload.get("userEmail", "")).strip(),
-            "username": str(payload.get("username", "")).strip(),
-            "displayName": str(payload["displayName"]).strip()[:80],
+            "userId": str(requester.get("id", "")).strip(),
+            "userEmail": str(requester.get("email") or requester.get("username") or "").strip(),
+            "username": str(requester.get("username") or requester.get("email") or "").strip(),
+            "displayName": str(requester.get("displayName") or payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
             "advancingTeam": str(advancing_team).strip(),
             "homeScore": payload["homeScore"],

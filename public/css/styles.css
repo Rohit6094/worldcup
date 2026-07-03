@@ -84,6 +84,17 @@ button {
   border-bottom: 1px solid var(--border);
   background: rgba(246, 246, 247, 0.86);
   backdrop-filter: blur(12px);
+  transform: translateY(0);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  will-change: transform;
+}
+
+.site-header.header-hidden {
+  transform: translateY(calc(-100% - 2px));
+}
+
+.site-header.header-visible {
+  box-shadow: 0 12px 34px rgba(39, 39, 42, 0.1);
 }
 
 .nav {

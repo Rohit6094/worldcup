@@ -249,7 +249,11 @@ function editPrediction(index) {
 async function removePrediction(index) {
   const prediction = adminState.predictions[index];
   if (!prediction || !confirm("Delete this prediction?")) return;
-  await WCApp.deletePrediction(prediction);
+  const result = await WCApp.deletePrediction(prediction);
+  if (!result.success) {
+    WCApp.showToast(result.error || "Prediction could not be deleted.", "error");
+    return;
+  }
   WCApp.removePredictionLocally(prediction);
   adminState.predictions = adminState.predictions.filter((_, itemIndex) => itemIndex !== index);
   renderAdmin();

@@ -323,10 +323,12 @@
   const fallbackLeaderboard = [];
 
   async function requestJson(url, options = {}) {
+    const authHeaders = window.WCAuth?.authHeaders?.() || {};
+    const { headers = {}, cache = "no-store", ...fetchOptions } = options;
     const response = await fetch(url, {
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-      cache: options.cache || "no-store",
-      ...options,
+      ...fetchOptions,
+      headers: { "Content-Type": "application/json", ...authHeaders, ...headers },
+      cache,
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
@@ -427,8 +429,8 @@
         }),
       });
     } catch (error) {
-      console.warn("Prediction deleted locally only", error);
-      return { success: true, localOnly: true };
+      console.warn("Prediction could not be deleted", error);
+      return { success: false, error: error.message || "Prediction could not be deleted." };
     }
   }
 
@@ -679,7 +681,7 @@
     return modal;
   }
 
-  function openPredictionModal(match, onSaved) {
+  function openPredictionModal(match, onSaved, existingPrediction = null) {
     const currentUser = window.WCAuth?.getCurrentUser?.();
     if (!currentUser) {
       showToast("Login or create an account to save predictions.", "error");
@@ -696,7 +698,7 @@
     }
 
     const modal = ensurePredictionModal();
-    const existing = getPredictionForMatch(match.id) || {};
+    const existing = existingPrediction || getPredictionForMatch(match.id) || {};
     const form = modal.querySelector("[data-prediction-form]");
     const winnerSelect = form.elements.predictedWinner;
     const displayName = currentUser.displayName;
@@ -839,6 +841,7 @@
     fetchPredictions,
     deletePrediction,
     removePredictionLocally,
+    savePredictionLocally,
     scorePrediction,
     assignLeaderboardRanks,
     buildPredictionRows,

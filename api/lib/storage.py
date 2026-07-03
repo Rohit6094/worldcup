@@ -12,10 +12,13 @@ from .http_client import request_json
 
 PREDICTION_KEYS_SET = "wc2026:predictions:keys"
 USER_KEYS_SET = "wc2026:users:keys"
+SESSION_KEYS_SET = "wc2026:sessions:keys"
 USER_EMAIL_PREFIX = "wc2026:user-email:"
 USER_USERNAME_PREFIX = "wc2026:user-username:"
+SESSION_PREFIX = "wc2026:session:"
 USERS_FILE = DATA_DIR / "users.json"
 PREDICTIONS_FILE = DATA_DIR / "predictions.json"
+SESSIONS_FILE = DATA_DIR / "sessions.json"
 
 
 def prediction_key(prediction):
@@ -26,6 +29,14 @@ def prediction_key(prediction):
 def prediction_key_from_parts(match_id, user_id="", user_email=""):
     user_key = user_id or user_email or "anonymous"
     return f"wc2026:prediction:{user_key}:{match_id}"
+
+
+def session_token_hash(token):
+    return hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
+
+
+def session_key(token_hash):
+    return f"{SESSION_PREFIX}{token_hash}"
 
 
 def read_local_predictions():
@@ -40,6 +51,20 @@ def read_local_predictions():
 def write_local_predictions(predictions):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     PREDICTIONS_FILE.write_text(json.dumps(predictions, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def read_local_sessions():
+    if not SESSIONS_FILE.exists():
+        return []
+    try:
+        return json.loads(SESSIONS_FILE.read_text(encoding="utf-8") or "[]")
+    except json.JSONDecodeError:
+        return []
+
+
+def write_local_sessions(sessions):
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    SESSIONS_FILE.write_text(json.dumps(sessions, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def save_prediction(prediction):
@@ -95,6 +120,79 @@ def delete_prediction(match_id, user_id="", user_email=""):
     kv_command(["DEL", key])
     kv_command(["SREM", PREDICTION_KEYS_SET, key])
     return {"deleted": True, "storage": "vercel-kv", "key": key}
+
+
+def create_session(user):
+    token = secrets.token_urlsafe(32)
+    token_hash = session_token_hash(token)
+    session = {
+        "tokenHash": token_hash,
+        "userId": user.get("id", ""),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if is_vercel_kv_configured():
+        key = session_key(token_hash)
+        kv_command(["SET", key, json.dumps(session, ensure_ascii=False)])
+        kv_command(["SADD", SESSION_KEYS_SET, key])
+    else:
+        sessions = [item for item in read_local_sessions() if item.get("tokenHash") != token_hash]
+        sessions.append(session)
+        write_local_sessions(sessions)
+
+    return token
+
+
+def find_user_by_session_token(token, include_private=True):
+    token_hash = session_token_hash(token)
+    if not token or not token_hash:
+        return None
+
+    if is_vercel_kv_configured():
+        item = kv_command(["GET", session_key(token_hash)])
+        value = (item or {}).get("result")
+        if not value:
+            return None
+        try:
+            session = json.loads(value)
+        except json.JSONDecodeError:
+            return None
+        return find_user_by_id(session.get("userId"), include_private=include_private)
+
+    for session in read_local_sessions():
+        if session.get("tokenHash") == token_hash:
+            return find_user_by_id(session.get("userId"), include_private=include_private)
+    return None
+
+
+def delete_sessions_for_user(user_id):
+    clean_user_id = str(user_id or "").strip()
+    if not clean_user_id:
+        return 0
+
+    if is_vercel_kv_configured():
+        keys_response = kv_command(["SMEMBERS", SESSION_KEYS_SET])
+        keys = (keys_response or {}).get("result") or []
+        deleted = 0
+        for key in keys[:3000]:
+            item = kv_command(["GET", key])
+            value = (item or {}).get("result")
+            if not value:
+                continue
+            try:
+                session = json.loads(value)
+            except json.JSONDecodeError:
+                continue
+            if session.get("userId") == clean_user_id:
+                kv_command(["DEL", key])
+                kv_command(["SREM", SESSION_KEYS_SET, key])
+                deleted += 1
+        return deleted
+
+    sessions = read_local_sessions()
+    remaining = [session for session in sessions if session.get("userId") != clean_user_id]
+    write_local_sessions(remaining)
+    return len(sessions) - len(remaining)
 
 
 def normalize_username(username):
@@ -319,7 +417,7 @@ def authenticate_user(email="", password="", username=""):
         return {"success": False, "error": "Username or password is incorrect."}
     user["lastLoginAt"] = datetime.now(timezone.utc).isoformat()
     persist_user(user)
-    return {"success": True, "user": public_user(user)}
+    return {"success": True, "user": public_user(user), "token": create_session(user)}
 
 
 def admin_save_user(user_id="", display_name="", email="", role="user", password="", username=""):
@@ -390,6 +488,7 @@ def delete_user(user_id):
         return {"deleted": False, "storage": "none"}
 
     deleted_predictions = delete_predictions_for_user(user)
+    deleted_sessions = delete_sessions_for_user(user_id)
 
     if is_vercel_kv_configured():
         key = user_key(user_id)
@@ -397,11 +496,11 @@ def delete_user(user_id):
         kv_command(["SREM", USER_KEYS_SET, key])
         kv_command(["DEL", email_key(user.get("email", ""))])
         kv_command(["DEL", username_key(user.get("username") or user.get("email", ""))])
-        return {"deleted": True, "deletedPredictions": deleted_predictions, "storage": "vercel-kv"}
+        return {"deleted": True, "deletedPredictions": deleted_predictions, "deletedSessions": deleted_sessions, "storage": "vercel-kv"}
 
     users = [item for item in read_local_users() if item.get("id") != user_id]
     write_local_users(users)
-    return {"deleted": True, "deletedPredictions": deleted_predictions, "storage": "local-json"}
+    return {"deleted": True, "deletedPredictions": deleted_predictions, "deletedSessions": deleted_sessions, "storage": "local-json"}
 
 
 def append_prediction_to_google_sheets(prediction):

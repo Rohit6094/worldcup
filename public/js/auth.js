@@ -24,10 +24,11 @@
   }
 
   async function requestAuth(url, options = {}) {
+    const { headers = {}, ...fetchOptions } = options;
     const response = await fetch(url, {
       cache: "no-store",
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-      ...options,
+      ...fetchOptions,
+      headers: { "Content-Type": "application/json", ...headers },
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.success === false) {
@@ -87,6 +88,7 @@
     try {
       const result = await requestAuth("/api/auth", {
         method: "POST",
+        headers: authHeaders(),
         body: JSON.stringify({
           action: "adminSaveUser",
           id,
@@ -111,6 +113,7 @@
     try {
       const result = await requestAuth("/api/auth", {
         method: "DELETE",
+        headers: authHeaders(),
         body: JSON.stringify({ id: userId }),
       });
       await fetchUsers();
@@ -134,7 +137,7 @@
         }),
       });
       await fetchUsers();
-      setSession(result.user);
+      setSession(result.user, result.token);
       renderAuthNav();
       return result;
     } catch (error) {
@@ -153,7 +156,7 @@
     };
   }
 
-  function setSession(user) {
+  function setSession(user, token = "") {
     localStorage.setItem(
       SESSION_KEY,
       JSON.stringify({
@@ -161,6 +164,7 @@
         username: user.username || user.email,
         email: user.email || user.username,
         user: publicUser(user),
+        token,
         startedAt: new Date().toISOString(),
       })
     );
@@ -170,6 +174,7 @@
     try {
       const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
       if (!session?.userId) return null;
+      if (!session.token) return null;
       if (session.user) return publicUser(session.user);
       const user = getUsers().find((item) => item.id === session.userId);
       return publicUser(user);
@@ -182,6 +187,20 @@
     localStorage.removeItem(SESSION_KEY);
     renderAuthNav();
     renderProtectedNavLinks();
+  }
+
+  function getSessionToken() {
+    try {
+      const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+      return session?.token || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function authHeaders() {
+    const token = getSessionToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   function isAdmin() {
@@ -251,7 +270,57 @@
       .replaceAll("'", "&#039;");
   }
 
+  function initAutoHideHeader() {
+    const header = document.querySelector(".site-header");
+    if (!header) return;
+
+    let lastY = window.scrollY || 0;
+    let ticking = false;
+    const topThreshold = 80;
+    const deltaThreshold = 8;
+
+    function showHeader() {
+      header.classList.remove("header-hidden");
+      header.classList.toggle("header-visible", window.scrollY > topThreshold);
+    }
+
+    function hideHeader() {
+      if (header.matches(":focus-within")) return;
+      header.classList.add("header-hidden");
+      header.classList.remove("header-visible");
+    }
+
+    function updateHeader() {
+      const currentY = Math.max(0, window.scrollY || 0);
+      const delta = currentY - lastY;
+
+      if (currentY <= topThreshold || delta < -deltaThreshold) {
+        showHeader();
+      } else if (delta > deltaThreshold) {
+        hideHeader();
+      }
+
+      lastY = currentY;
+      ticking = false;
+    }
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(updateHeader);
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("resize", showHeader);
+    header.addEventListener("focusin", showHeader);
+    showHeader();
+  }
+
   document.addEventListener("DOMContentLoaded", async () => {
+    initAutoHideHeader();
     renderAuthNav();
     if (getCurrentUser()) await fetchUsers();
     renderAuthNav();
@@ -267,6 +336,8 @@
     login,
     logout,
     getCurrentUser,
+    getSessionToken,
+    authHeaders,
     isAdmin,
     requireAuth,
     requireAdmin,

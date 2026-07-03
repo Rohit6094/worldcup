@@ -1,24 +1,90 @@
+const pointsState = {
+  currentUser: null,
+  matches: [],
+  rows: [],
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   if (!WCAuth.requireAuth()) return;
 
-  const currentUser = WCAuth.getCurrentUser();
+  pointsState.currentUser = WCAuth.getCurrentUser();
+  await loadPredictionPoints();
+
+  document.addEventListener("click", async (event) => {
+    const editButton = event.target.closest("[data-edit-own-prediction]");
+    if (editButton) {
+      const row = pointsState.rows.find((item) => predictionKey(item) === editButton.dataset.editOwnPrediction);
+      if (row?.match) {
+        WCApp.openPredictionModal(row.match, loadPredictionPoints, row);
+      }
+      return;
+    }
+
+    const deleteButton = event.target.closest("[data-delete-own-prediction]");
+    if (deleteButton) {
+      const row = pointsState.rows.find((item) => predictionKey(item) === deleteButton.dataset.deleteOwnPrediction);
+      if (!row || !confirm("Delete this prediction?")) return;
+
+      deleteButton.disabled = true;
+      deleteButton.textContent = "Deleting...";
+      const result = await WCApp.deletePrediction(row);
+      if (!result.success) {
+        deleteButton.disabled = false;
+        deleteButton.textContent = "Delete";
+        WCApp.showToast(result.error || "Prediction could not be deleted.", "error");
+        return;
+      }
+
+      WCApp.removePredictionLocally(row);
+      WCApp.showToast("Prediction deleted.");
+      await loadPredictionPoints();
+    }
+  });
+});
+
+async function loadPredictionPoints() {
+  const userContainer = document.querySelector("[data-user-points]");
+  const overallContainer = document.querySelector("[data-overall-points]");
+  userContainer.innerHTML = `<div class="loading-card">Loading your predictions...</div>`;
+  overallContainer.innerHTML = `<div class="loading-card">Loading all predictions...</div>`;
+
   const matches = await WCApp.fetchMatches();
   const serverPredictions = await WCApp.fetchPredictions();
   const localPredictions = WCApp.getSavedPredictions();
   const predictions = mergePredictions(serverPredictions, localPredictions);
   const rows = WCApp.buildPredictionRows(predictions, matches);
 
-  renderUserPredictions(rows, currentUser);
+  pointsState.currentUser = WCAuth.getCurrentUser();
+  pointsState.matches = matches;
+  pointsState.rows = rows;
+
+  renderUserPredictions(rows, pointsState.currentUser);
   renderOverallPredictions(rows);
-});
+}
 
 function mergePredictions(primary, fallback) {
   const map = new Map();
   [...fallback, ...primary].forEach((prediction) => {
-    const key = `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
+    const key = predictionKey(prediction);
     map.set(key, prediction);
   });
   return Array.from(map.values()).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+}
+
+function predictionKey(prediction) {
+  return `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
+}
+
+function ownsPrediction(row, currentUser) {
+  if (!currentUser) return false;
+  const userValues = new Set(
+    [currentUser.id, currentUser.username, currentUser.email]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase())
+  );
+  return [row.userId, row.username, row.userEmail]
+    .filter(Boolean)
+    .some((value) => userValues.has(String(value).trim().toLowerCase()));
 }
 
 function renderUserPredictions(rows, currentUser) {
@@ -28,21 +94,22 @@ function renderUserPredictions(rows, currentUser) {
     return;
   }
 
-  const userRows = rows.filter((row) => row.userId === currentUser.id || row.userEmail === currentUser.email || row.username === currentUser.username);
-  renderPredictionTable(container, userRows, "You have not submitted predictions yet.");
+  const userRows = rows.filter((row) => ownsPrediction(row, currentUser));
+  renderPredictionTable(container, userRows, "You have not submitted predictions yet.", { allowActions: true });
 }
 
 function renderOverallPredictions(rows) {
   const container = document.querySelector("[data-overall-points]");
-  renderPredictionTable(container, rows, "No predictions have been submitted yet.");
+  renderPredictionTable(container, rows, "No predictions have been submitted yet.", { allowActions: false });
 }
 
-function renderPredictionTable(container, rows, emptyMessage) {
+function renderPredictionTable(container, rows, emptyMessage, options = {}) {
   if (!rows.length) {
     container.innerHTML = `<div class="empty-card">${emptyMessage}</div>`;
     return;
   }
 
+  const allowActions = Boolean(options.allowActions);
   container.innerHTML = `
     <div class="table-wrap">
       <table class="leaderboard-table">
@@ -55,26 +122,43 @@ function renderPredictionTable(container, rows, emptyMessage) {
             <th>Winner</th>
             <th>Exact</th>
             <th>Points</th>
+            ${allowActions ? "<th>Actions</th>" : ""}
           </tr>
         </thead>
         <tbody>
-          ${rows.map((row) => {
-            const matchLabel = row.match ? `${row.match.homeTeam.name} vs ${row.match.awayTeam.name}` : row.matchId;
-            const result = row.match && row.match.status === "completed" ? WCApp.scoreText(row.match) : "Pending";
-            return `
-              <tr>
-                <td>${WCApp.escapeHtml(row.displayName || row.username || row.userEmail || "Unknown")}</td>
-                <td>${WCApp.escapeHtml(matchLabel)}</td>
-                <td>${WCApp.escapeHtml(row.predictedWinner)} (${WCApp.escapeHtml(WCApp.predictionScoreText(row))})</td>
-                <td>${WCApp.escapeHtml(result)}</td>
-                <td>${row.correctWinner ? "Yes" : "No"}</td>
-                <td>${row.exactScore ? "Yes" : "No"}</td>
-                <td><strong>${row.points}</strong></td>
-              </tr>
-            `;
-          }).join("")}
+          ${rows.map((row) => renderPredictionRow(row, allowActions)).join("")}
         </tbody>
       </table>
     </div>
+  `;
+}
+
+function renderPredictionRow(row, allowActions) {
+  const matchLabel = row.match ? `${row.match.homeTeam.name} vs ${row.match.awayTeam.name}` : row.matchId;
+  const result = row.match && row.match.status === "completed" ? WCApp.scoreText(row.match) : "Pending";
+  return `
+    <tr>
+      <td>${WCApp.escapeHtml(row.displayName || row.username || row.userEmail || "Unknown")}</td>
+      <td>${WCApp.escapeHtml(matchLabel)}</td>
+      <td>${WCApp.escapeHtml(row.predictedWinner)} (${WCApp.escapeHtml(WCApp.predictionScoreText(row))})</td>
+      <td>${WCApp.escapeHtml(result)}</td>
+      <td>${row.correctWinner ? "Yes" : "No"}</td>
+      <td>${row.exactScore ? "Yes" : "No"}</td>
+      <td><strong>${row.points}</strong></td>
+      ${allowActions ? `<td class="table-actions">${renderPredictionActions(row)}</td>` : ""}
+    </tr>
+  `;
+}
+
+function renderPredictionActions(row) {
+  if (!row.match) return `<span class="prediction-status">Unavailable</span>`;
+  if (!WCApp.isPredictionOpen(row.match)) {
+    return `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(row.match))}</span>`;
+  }
+
+  const key = WCApp.escapeHtml(predictionKey(row));
+  return `
+    <button class="btn btn-small btn-ghost" type="button" data-edit-own-prediction="${key}">Edit</button>
+    <button class="btn btn-small btn-ghost danger-action" type="button" data-delete-own-prediction="${key}">Delete</button>
   `;
 }

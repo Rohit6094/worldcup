@@ -8,7 +8,7 @@ def json_response(handler, status_code, payload, cache_control=None, methods="GE
     handler.send_header("Content-Length", str(len(body)))
     handler.send_header("Access-Control-Allow-Origin", "*")
     handler.send_header("Access-Control-Allow-Methods", methods)
-    handler.send_header("Access-Control-Allow-Headers", "Content-Type")
+    handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
     if cache_control:
         handler.send_header("Cache-Control", cache_control)
     handler.end_headers()
