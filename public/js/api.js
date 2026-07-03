@@ -440,7 +440,6 @@
       return !(sameUser && item.matchId === prediction.matchId);
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
-    document.dispatchEvent(new CustomEvent("wc:predictions-changed"));
   }
 
   function scorePrediction(prediction, match) {
@@ -577,7 +576,6 @@
     });
     predictions.push(prediction);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
-    document.dispatchEvent(new CustomEvent("wc:predictions-changed"));
   }
 
   function getPredictionForMatch(matchId) {
@@ -606,27 +604,6 @@
     if (!cutoff) return "Prediction unavailable";
     if (Date.now() >= cutoff.getTime()) return "Predictions closed";
     return `Open until ${formatDateTime(cutoff.toISOString())}`;
-  }
-
-  function timeLeftText(match) {
-    if (!match) return "Match timing unavailable";
-    if (match.status === "completed") return "Match completed";
-    if (match.status === "live") return "Live now";
-    if (!match.date) return "Kickoff TBD";
-
-    const kickoff = new Date(match.date);
-    if (Number.isNaN(kickoff.getTime())) return "Kickoff TBD";
-    const diff = kickoff.getTime() - Date.now();
-    if (diff <= 0) return "Starting soon";
-
-    const totalMinutes = Math.ceil(diff / 60000);
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
-    const minutes = totalMinutes % 60;
-
-    if (days > 0) return `Kickoff in ${days}d ${hours}h`;
-    if (hours > 0) return `Kickoff in ${hours}h ${minutes}m`;
-    return `Kickoff in ${minutes}m`;
   }
 
   function escapeHtml(value) {
@@ -877,7 +854,6 @@
     getPredictionForMatch,
     isPredictionOpen,
     predictionLockText,
-    timeLeftText,
     openPredictionModal,
     showToast,
     scoreText,

@@ -154,7 +154,6 @@ function renderMatchCard(match) {
             : `<span class="prediction-status">No prediction yet</span>`
         }
       </div>
-      <div class="countdown-strip">${WCApp.escapeHtml(WCApp.timeLeftText(match))}</div>
     </article>
   `;
 }

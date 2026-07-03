@@ -146,7 +146,6 @@ function renderSummaryList(container, matches, type) {
                 ? `<button class="btn btn-small btn-primary" type="button" data-predict-match="${match.id}">Predict Now</button>`
                 : `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(match))}</span>`
           }
-          <div class="countdown-strip">${WCApp.escapeHtml(WCApp.timeLeftText(match))}</div>
         </article>
       `;
     })
@@ -189,7 +188,6 @@ function renderFeaturedMatches(container, matches) {
                   : `<span class="result-badge">Winner: ${WCApp.escapeHtml(match.winner || "TBD")}</span>`
             }
           </div>
-          <div class="countdown-strip">${WCApp.escapeHtml(WCApp.timeLeftText(match))}</div>
         </article>
       `;
     })
