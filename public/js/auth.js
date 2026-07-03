@@ -203,6 +203,109 @@
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
+  async function requestProtectedJson(url) {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) {
+      throw new Error(payload.error || `Request failed with ${response.status}`);
+    }
+    return payload;
+  }
+
+  async function fetchNotificationData() {
+    const [predictionPayload, matchPayload] = await Promise.all([
+      requestProtectedJson(`/api/predictions?t=${Date.now()}`),
+      requestProtectedJson(`/api/matches?t=${Date.now()}`),
+    ]);
+    const matches = Array.isArray(matchPayload) ? matchPayload : matchPayload.matches || [];
+    return {
+      predictions: predictionPayload.predictions || [],
+      matchesById: new Map(matches.map((match) => [String(match.id), match])),
+    };
+  }
+
+  async function refreshNotificationCount(nav) {
+    const countEl = nav.querySelector("[data-notification-count]");
+    if (!countEl) return;
+    try {
+      const { predictions } = await fetchNotificationData();
+      countEl.textContent = String(Math.min(predictions.length, 99));
+    } catch (error) {
+      countEl.textContent = "0";
+    }
+  }
+
+  async function openNotifications(menu) {
+    const button = menu.querySelector("[data-notification-toggle]");
+    const panel = menu.querySelector("[data-notification-panel]");
+    panel.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+    panel.innerHTML = `<div class="notification-empty">Loading predictions...</div>`;
+
+    try {
+      const { predictions, matchesById } = await fetchNotificationData();
+      const recent = predictions
+        .slice()
+        .sort((a, b) => new Date(b.submittedAt || b.savedAt || 0) - new Date(a.submittedAt || a.savedAt || 0))
+        .slice(0, 10);
+      panel.innerHTML = renderNotificationList(recent, matchesById);
+      const countEl = menu.querySelector("[data-notification-count]");
+      if (countEl) countEl.textContent = String(Math.min(predictions.length, 99));
+    } catch (error) {
+      panel.innerHTML = `<div class="notification-empty">Notifications could not be loaded.</div>`;
+    }
+  }
+
+  function closeNotifications(menu) {
+    const button = menu.querySelector("[data-notification-toggle]");
+    const panel = menu.querySelector("[data-notification-panel]");
+    if (!panel) return;
+    panel.hidden = true;
+    button?.setAttribute("aria-expanded", "false");
+  }
+
+  function renderNotificationList(predictions, matchesById) {
+    if (!predictions.length) {
+      return `<div class="notification-empty">No predictions have been submitted yet.</div>`;
+    }
+
+    return `
+      <div class="notification-list">
+        ${predictions
+          .map((prediction) => {
+            const match = matchesById.get(String(prediction.matchId));
+            const matchLabel = match
+              ? `${match.homeTeam?.name || "TBD"} vs ${match.awayTeam?.name || "TBD"}`
+              : `Match ${prediction.matchId}`;
+            return `
+              <article class="notification-item">
+                <strong>${escapeHtml(prediction.displayName || prediction.username || prediction.userEmail || "Unknown user")}</strong>
+                <p>${escapeHtml(matchLabel)}</p>
+                <span>${escapeHtml(prediction.predictedWinner || "Prediction")} ${escapeHtml(prediction.homeScore)}-${escapeHtml(prediction.awayScore)}</span>
+                <time>${escapeHtml(formatNotificationTime(prediction.submittedAt || prediction.savedAt))}</time>
+              </article>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function formatNotificationTime(value) {
+    if (!value) return "Time unavailable";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Time unavailable";
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  }
+
   function isAdmin() {
     return getCurrentUser()?.role === "admin";
   }
@@ -243,9 +346,26 @@
       navLinks.insertBefore(adminLink, nav);
     }
     nav.innerHTML = `
+      <span class="notification-menu" data-notification-menu>
+        <button class="nav-button notification-button" type="button" data-notification-toggle aria-expanded="false">
+          Notifications <span class="notification-count" data-notification-count>0</span>
+        </button>
+        <span class="notification-panel" data-notification-panel hidden></span>
+      </span>
       <span class="nav-user">${escapeHtml(user.displayName)}</span>
       <button class="nav-button" type="button" data-logout>Logout</button>
     `;
+    const notificationMenu = nav.querySelector("[data-notification-menu]");
+    notificationMenu?.querySelector("[data-notification-toggle]")?.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const panel = notificationMenu.querySelector("[data-notification-panel]");
+      if (panel.hidden) {
+        await openNotifications(notificationMenu);
+      } else {
+        closeNotifications(notificationMenu);
+      }
+    });
+    refreshNotificationCount(nav);
     nav.querySelector("[data-logout]")?.addEventListener("click", () => {
       logout();
       if (location.pathname.endsWith("admin.html") || location.pathname.endsWith("leaderboard.html") || location.pathname.endsWith("points.html")) {
@@ -318,6 +438,17 @@
     header.addEventListener("focusin", showHeader);
     showHeader();
   }
+
+  document.addEventListener("click", (event) => {
+    document.querySelectorAll("[data-notification-menu]").forEach((menu) => {
+      if (!menu.contains(event.target)) closeNotifications(menu);
+    });
+  });
+
+  document.addEventListener("wc:predictions-changed", () => {
+    const nav = document.querySelector("[data-auth-nav]");
+    if (nav && getCurrentUser()) refreshNotificationCount(nav);
+  });
 
   document.addEventListener("DOMContentLoaded", async () => {
     initAutoHideHeader();
