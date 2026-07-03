@@ -144,16 +144,8 @@ async function savePredictionFromForm(event) {
 
   const homeScore = Number(form.elements.homeScore.value);
   const awayScore = Number(form.elements.awayScore.value);
-  const penaltyHomeRaw = form.elements.penaltyHomeScore.value;
-  const penaltyAwayRaw = form.elements.penaltyAwayScore.value;
-  const penaltyHomeScore = penaltyHomeRaw === "" ? null : Number(penaltyHomeRaw);
-  const penaltyAwayScore = penaltyAwayRaw === "" ? null : Number(penaltyAwayRaw);
   if (!Number.isInteger(homeScore) || homeScore < 0 || !Number.isInteger(awayScore) || awayScore < 0) {
     errorEl.textContent = "Scores must be non-negative whole numbers.";
-    return;
-  }
-  if ((penaltyHomeRaw !== "" || penaltyAwayRaw !== "") && (!Number.isInteger(penaltyHomeScore) || penaltyHomeScore < 0 || !Number.isInteger(penaltyAwayScore) || penaltyAwayScore < 0)) {
-    errorEl.textContent = "Penalty scores must be non-negative whole numbers.";
     return;
   }
 
@@ -167,8 +159,6 @@ async function savePredictionFromForm(event) {
     advancingTeam: form.elements.advancingTeam.value,
     homeScore,
     awayScore,
-    penaltyHomeScore,
-    penaltyAwayScore,
     submittedAt: new Date().toISOString(),
   };
 
@@ -215,8 +205,6 @@ function editPrediction(index) {
   form.elements.advancingTeam.value = prediction.advancingTeam || "";
   form.elements.homeScore.value = prediction.homeScore ?? "";
   form.elements.awayScore.value = prediction.awayScore ?? "";
-  form.elements.penaltyHomeScore.value = prediction.penaltyHomeScore ?? "";
-  form.elements.penaltyAwayScore.value = prediction.penaltyAwayScore ?? "";
   form.querySelector("[data-prediction-form-title]").textContent = "Edit Prediction";
   form.scrollIntoView({ behavior: "smooth", block: "center" });
 }

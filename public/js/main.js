@@ -125,6 +125,7 @@ function renderSummaryList(container, matches, type) {
     .map((match, index) => {
       const goalsId = `goals-${type}-${index}`;
       const isCompleted = type === "completed";
+      const canPredict = WCApp.isPredictionOpen(match);
       return `
         <article class="mini-match-card">
           <div class="card-meta match-card-top">
@@ -141,7 +142,9 @@ function renderSummaryList(container, matches, type) {
             isCompleted
               ? `<button class="btn btn-small btn-ghost" type="button" data-toggle-goals="${goalsId}">View Goal Details</button>
                  <div class="goal-list" id="${goalsId}" hidden>${renderGoals(match)}</div>`
-              : `<button class="btn btn-small btn-primary" type="button" data-predict-match="${match.id}">Predict Now</button>`
+              : canPredict
+                ? `<button class="btn btn-small btn-primary" type="button" data-predict-match="${match.id}">Predict Now</button>`
+                : `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(match))}</span>`
           }
         </article>
       `;
@@ -159,6 +162,7 @@ function renderFeaturedMatches(container, matches) {
   container.innerHTML = matches
     .map((match) => {
       const prediction = WCApp.getPredictionForMatch(match.id);
+      const canPredict = WCApp.isPredictionOpen(match);
       return `
         <article class="match-card prediction-card">
           <div class="card-meta match-card-top">
@@ -177,9 +181,11 @@ function renderFeaturedMatches(container, matches) {
           <div class="card-actions">
             <span class="prediction-status">${prediction ? "Prediction saved" : "No prediction yet"}</span>
             ${
-              match.status === "upcoming"
+              canPredict
                 ? `<button class="btn btn-primary" type="button" data-predict-match="${match.id}">Predict</button>`
-                : `<span class="result-badge">Winner: ${WCApp.escapeHtml(match.winner || "TBD")}</span>`
+                : match.status === "upcoming"
+                  ? `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(match))}</span>`
+                  : `<span class="result-badge">Winner: ${WCApp.escapeHtml(match.winner || "TBD")}</span>`
             }
           </div>
         </article>

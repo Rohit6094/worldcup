@@ -156,8 +156,6 @@ class LocalHandler(SimpleHTTPRequestHandler):
             "advancingTeam": str(payload.get("advancingTeam", "")).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
-            "penaltyHomeScore": payload.get("penaltyHomeScore"),
-            "penaltyAwayScore": payload.get("penaltyAwayScore"),
             "submittedAt": datetime.now(timezone.utc).isoformat(),
         }
         try:

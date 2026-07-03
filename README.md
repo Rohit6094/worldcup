@@ -195,9 +195,11 @@ It shows two sections:
 
 ## Scoring
 
-- Correct advancing winner: 1 point
-- Exact regular score: 3 points
-- Penalty scores are stored for shootout predictions, but they do not currently add separate points because the active provider feed does not expose penalty shootout scores in normalized match data.
+- Correct advancing winner only: 1 point
+- Correct advancing winner and exact regular score: 3 total points
+- Exact regular score with incorrect advancing winner: 0 points
+- Penalty shootout score is not collected and does not add points
+- Predictions close one hour before kickoff
 - Participation points: 0
 - Bonus points: 0
 

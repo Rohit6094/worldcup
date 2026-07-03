@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 
 from api.lib.responses import error_payload, json_response, parse_json_body
 from api.lib.storage import save_prediction
+from api.matches import get_matches_payload
 
 
 REQUIRED_FIELDS = ("matchId", "displayName", "predictedWinner", "homeScore", "awayScore")
@@ -12,6 +13,40 @@ def is_non_negative_integer(value):
     return isinstance(value, int) and value >= 0
 
 
+def parse_match_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def find_match(match_id):
+    payload = get_matches_payload()
+    for match in payload.get("matches", []):
+        if str(match.get("id")) == str(match_id):
+            return match
+    return None
+
+
+def validate_prediction_cutoff(match_id):
+    match = find_match(match_id)
+    if not match:
+        return "Match could not be found"
+    if match.get("status") != "upcoming":
+        return "Predictions are closed for this match"
+
+    kickoff = parse_match_date(match.get("date"))
+    if not kickoff:
+        return "Match kickoff time is unavailable"
+
+    cutoff = kickoff - timedelta(hours=1)
+    if datetime.now(timezone.utc) >= cutoff:
+        return "Predictions close one hour before kickoff"
+    return None
+
+
 def validate_prediction(payload):
     missing = [field for field in REQUIRED_FIELDS if field not in payload]
     if missing:
@@ -19,6 +54,9 @@ def validate_prediction(payload):
 
     if not str(payload.get("matchId", "")).strip():
         return "matchId is required"
+    cutoff_error = validate_prediction_cutoff(str(payload.get("matchId", "")).strip())
+    if cutoff_error:
+        return cutoff_error
     if not str(payload.get("displayName", "")).strip():
         return "displayName is required"
     if not str(payload.get("predictedWinner", "")).strip():
@@ -34,12 +72,6 @@ def validate_prediction(payload):
     if payload.get("predictedWinner") == "Draw / Penalties":
         if payload.get("homeScore") != payload.get("awayScore"):
             return "main score must be tied for penalty predictions"
-        if not is_non_negative_integer(payload.get("penaltyHomeScore")):
-            return "penaltyHomeScore must be a non-negative integer"
-        if not is_non_negative_integer(payload.get("penaltyAwayScore")):
-            return "penaltyAwayScore must be a non-negative integer"
-        if payload.get("penaltyHomeScore") == payload.get("penaltyAwayScore"):
-            return "penalty score must have a winning team"
     return None
 
 
@@ -72,8 +104,6 @@ class handler(BaseHTTPRequestHandler):
             "advancingTeam": str(payload.get("advancingTeam", "")).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
-            "penaltyHomeScore": payload.get("penaltyHomeScore"),
-            "penaltyAwayScore": payload.get("penaltyAwayScore"),
             "submittedAt": datetime.now(timezone.utc).isoformat(),
         }
 

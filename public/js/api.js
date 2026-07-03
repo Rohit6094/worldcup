@@ -445,11 +445,11 @@
     }
     const home = match.score?.home;
     const away = match.score?.away;
-    const exactScore = Number.isInteger(home) && Number.isInteger(away) && prediction.homeScore === home && prediction.awayScore === away;
     const predictedWinner = prediction.predictedWinner === "Draw / Penalties" ? prediction.advancingTeam : prediction.predictedWinner;
     const correctWinner = Boolean(match.winner && predictedWinner === match.winner);
+    const exactScore = correctWinner && Number.isInteger(home) && Number.isInteger(away) && prediction.homeScore === home && prediction.awayScore === away;
     return {
-      points: (correctWinner ? 1 : 0) + (exactScore ? 3 : 0),
+      points: exactScore ? 3 : correctWinner ? 1 : 0,
       correctWinner,
       exactScore,
     };
@@ -571,6 +571,26 @@
     });
   }
 
+  function predictionCutoff(match) {
+    if (!match?.date) return null;
+    const kickoff = new Date(match.date);
+    if (Number.isNaN(kickoff.getTime())) return null;
+    return new Date(kickoff.getTime() - 60 * 60 * 1000);
+  }
+
+  function isPredictionOpen(match) {
+    const cutoff = predictionCutoff(match);
+    return match?.status === "upcoming" && Boolean(cutoff) && Date.now() < cutoff.getTime();
+  }
+
+  function predictionLockText(match) {
+    if (match?.status !== "upcoming") return "Predictions closed";
+    const cutoff = predictionCutoff(match);
+    if (!cutoff) return "Prediction unavailable";
+    if (Date.now() >= cutoff.getTime()) return "Predictions closed";
+    return `Open until ${formatDateTime(cutoff.toISOString())}`;
+  }
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replaceAll("&", "&amp;")
@@ -627,16 +647,6 @@
                 <input type="number" name="awayScore" min="0" step="1" inputmode="numeric" required>
               </label>
             </div>
-            <div class="score-inputs penalty-score-inputs" data-penalty-score-wrap hidden>
-              <label>
-                <span data-penalty-home-score-label>Home penalties</span>
-                <input type="number" name="penaltyHomeScore" min="0" step="1" inputmode="numeric">
-              </label>
-              <label>
-                <span data-penalty-away-score-label>Away penalties</span>
-                <input type="number" name="penaltyAwayScore" min="0" step="1" inputmode="numeric">
-              </label>
-            </div>
             <p class="form-error" data-form-error role="alert"></p>
             <button class="btn btn-primary" type="submit">Save Prediction</button>
           </form>
@@ -664,6 +674,11 @@
         const next = encodeURIComponent(`${location.pathname}${location.search}`);
         location.href = `login.html?next=${next}`;
       }, 700);
+      return;
+    }
+
+    if (!isPredictionOpen(match)) {
+      showToast("Predictions close one hour before kickoff.", "error");
       return;
     }
 
@@ -695,12 +710,8 @@
     form.elements.advancingTeam.value = existing.advancingTeam || "";
     form.elements.homeScore.value = existing.homeScore ?? "";
     form.elements.awayScore.value = existing.awayScore ?? "";
-    form.elements.penaltyHomeScore.value = existing.penaltyHomeScore ?? "";
-    form.elements.penaltyAwayScore.value = existing.penaltyAwayScore ?? "";
     form.querySelector("[data-home-score-label]").textContent = `${match.homeTeam?.name || "Home"} goals`;
     form.querySelector("[data-away-score-label]").textContent = `${match.awayTeam?.name || "Away"} goals`;
-    form.querySelector("[data-penalty-home-score-label]").textContent = `${match.homeTeam?.name || "Home"} penalties`;
-    form.querySelector("[data-penalty-away-score-label]").textContent = `${match.awayTeam?.name || "Away"} penalties`;
     form.dataset.matchId = match.id;
     form.querySelector("[data-form-error]").textContent = "";
     updateAdvancingVisibility(form);
@@ -711,10 +722,6 @@
       event.preventDefault();
       const homeScore = Number(form.elements.homeScore.value);
       const awayScore = Number(form.elements.awayScore.value);
-      const penaltyHomeRaw = form.elements.penaltyHomeScore.value;
-      const penaltyAwayRaw = form.elements.penaltyAwayScore.value;
-      const penaltyHomeScore = penaltyHomeRaw === "" ? null : Number(penaltyHomeRaw);
-      const penaltyAwayScore = penaltyAwayRaw === "" ? null : Number(penaltyAwayRaw);
       const errorEl = form.querySelector("[data-form-error]");
 
       if (!form.elements.predictedWinner.value || !form.elements.displayName.value.trim()) {
@@ -737,17 +744,6 @@
         errorEl.textContent = "Advancing team must match the predicted winner unless you choose Draw / Penalties.";
         return;
       }
-      if (form.elements.predictedWinner.value === "Draw / Penalties") {
-        if (!Number.isInteger(penaltyHomeScore) || penaltyHomeScore < 0 || !Number.isInteger(penaltyAwayScore) || penaltyAwayScore < 0) {
-          errorEl.textContent = "Penalty scores must be non-negative whole numbers.";
-          return;
-        }
-        if (penaltyHomeScore === penaltyAwayScore) {
-          errorEl.textContent = "Penalty score must have a winning team.";
-          return;
-        }
-      }
-
       const prediction = {
         matchId: match.id,
         userId: currentUser.id,
@@ -758,8 +754,6 @@
         advancingTeam: form.elements.advancingTeam.value,
         homeScore,
         awayScore,
-        penaltyHomeScore: form.elements.predictedWinner.value === "Draw / Penalties" ? penaltyHomeScore : null,
-        penaltyAwayScore: form.elements.predictedWinner.value === "Draw / Penalties" ? penaltyAwayScore : null,
         submittedAt: new Date().toISOString(),
       };
 
@@ -795,17 +789,8 @@
 
   function updateAdvancingVisibility(form) {
     const wrap = form.querySelector("[data-advancing-wrap]");
-    const penaltyWrap = form.querySelector("[data-penalty-score-wrap]");
-    const needsPenaltyScore = form.elements.predictedWinner.value === "Draw / Penalties";
     wrap.hidden = false;
-    penaltyWrap.hidden = !needsPenaltyScore;
     form.elements.advancingTeam.required = true;
-    form.elements.penaltyHomeScore.required = needsPenaltyScore;
-    form.elements.penaltyAwayScore.required = needsPenaltyScore;
-    if (!needsPenaltyScore) {
-      form.elements.penaltyHomeScore.value = "";
-      form.elements.penaltyAwayScore.value = "";
-    }
   }
 
   function scoreText(match) {
@@ -817,9 +802,6 @@
   function predictionScoreText(prediction) {
     if (!prediction) return "";
     const baseScore = `${prediction.homeScore}-${prediction.awayScore}`;
-    if (Number.isInteger(prediction.penaltyHomeScore) && Number.isInteger(prediction.penaltyAwayScore)) {
-      return `${baseScore}, pens ${prediction.penaltyHomeScore}-${prediction.penaltyAwayScore}`;
-    }
     return baseScore;
   }
 
@@ -843,6 +825,8 @@
     formatFullDateTime,
     getSavedPredictions,
     getPredictionForMatch,
+    isPredictionOpen,
+    predictionLockText,
     openPredictionModal,
     showToast,
     scoreText,

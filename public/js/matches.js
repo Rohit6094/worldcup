@@ -121,6 +121,7 @@ function renderMatchesPage(container, state) {
 
 function renderMatchCard(match) {
   const prediction = WCApp.getPredictionForMatch(match.id);
+  const canPredict = WCApp.isPredictionOpen(match);
   return `
     <article class="match-card detailed prediction-card">
       <div class="card-meta match-card-top">
@@ -140,9 +141,11 @@ function renderMatchCard(match) {
         <div class="match-action-buttons">
           <button class="btn btn-small btn-ghost" type="button" data-match-details="${match.id}">Details</button>
           ${
-            match.status === "upcoming"
+            canPredict
               ? `<button class="btn btn-small btn-primary" type="button" data-predict-match="${match.id}">Predict</button>`
-              : `<span class="result-badge">Result: ${WCApp.escapeHtml(match.winner || "Pending")}</span>`
+              : match.status === "upcoming"
+                ? `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(match))}</span>`
+                : `<span class="result-badge">Result: ${WCApp.escapeHtml(match.winner || "Pending")}</span>`
           }
         </div>
         ${
