@@ -10,9 +10,9 @@ This project intentionally does not implement betting, gambling, payments, odds,
 - CSS
 - Vanilla JavaScript
 - Python serverless functions for Vercel
-- JSON mock data and browser localStorage for demo prediction data
+- JSON mock data and local JSON fallback for Python development
 - football-data.org via protected Python endpoints
-- Optional Vercel KV / Upstash REST storage and cache
+- Optional Vercel KV / Upstash REST storage for users, predictions, and cache
 - Optional Google Sheets append-only prediction log
 - Optional API-Football / API-Sports fallback support
 
@@ -21,13 +21,17 @@ This project intentionally does not implement betting, gambling, payments, odds,
 ```text
 world-cup-2026-predict-win/
 |-- api/
+|   |-- auth.py
+|   |-- match_details.py
 |   |-- matches.py
 |   |-- leaderboard.py
+|   |-- predictions.py
 |   `-- submit_prediction.py
 |-- data/
 |   |-- mock_matches.json
 |   |-- mock_leaderboard.json
-|   `-- predictions.json
+|   |-- predictions.json
+|   `-- users.json
 |-- public/
 |   |-- index.html
 |   |-- leaderboard.html
@@ -113,15 +117,15 @@ If `FOOTBALL_DATA_KEY` is missing, the API request fails, or no fixtures are ret
 
 `data/mock_matches.json` and `public/data/mock_matches.json` are refreshed snapshots from football-data.org. The browser uses `public/data/mock_matches.json` as a static fallback if `/api/matches` is unavailable.
 
-Leaderboard data is calculated from stored predictions. If no predictions exist yet, the leaderboard returns an empty state instead of fake mock users.
+Leaderboard data is calculated from shared registered users and stored predictions. Registered users with no predictions can still appear with 0 points.
 
-Prediction submissions are validated by `/api/submit_prediction`. If Vercel KV REST variables are configured, predictions are stored server-side. Without KV, the API returns a successful server echo and the browser stores predictions in `localStorage` for local demo use.
+Signup, login, admin user management, and prediction submissions use Python API endpoints. If Vercel KV REST variables are configured, users and predictions are stored in KV and shared across devices. Without KV, `python local_server.py` stores users and predictions in local JSON files for development only.
 
 ## Caching and Storage
 
 Match data is cached with a default TTL of 900 seconds. This keeps football-data.org usage low and is suitable for a few hundred users because many page loads reuse the same cached response.
 
-Configure Vercel KV or Upstash REST for faster shared prediction storage:
+Configure Vercel KV or Upstash REST for shared users, predictions, and faster cache storage:
 
 ```text
 KV_REST_API_URL=your_kv_rest_url
@@ -145,8 +149,10 @@ Runtime behavior:
 - `/api/matches?refresh=1` bypasses the app match cache and fetches fresh provider data immediately.
 - If Vercel KV is configured, match data is also cached across serverless invocations.
 - If a provider request fails, the API can serve the last known good KV match snapshot.
+- `/api/auth` stores and reads shared users from Vercel KV when configured.
 - `/api/submit_prediction` stores predictions in Vercel KV when configured.
 - `/api/predictions` reads stored Vercel KV predictions for the admin page.
+- Without KV, the local Python server stores users and predictions in `data/users.json` and `data/predictions.json`.
 - Google Sheets receives an append-only copy of predictions when configured.
 
 Force a live match refresh:
@@ -158,7 +164,7 @@ Vercel: https://your-domain.vercel.app/api/matches?refresh=1
 
 ## Demo Accounts
 
-Login, signup, prediction ownership, and admin access are browser-local demo features. Passwords are salted and hashed before local storage, but this is not production authentication.
+Login, signup, prediction ownership, and admin access are demo API features. Passwords are salted and hashed server-side, but this is still not production authentication.
 
 To create a demo admin user, enter this invite code during signup:
 
@@ -174,7 +180,7 @@ Admin page:
 /admin.html
 ```
 
-The admin page supports browser-local CRUD for demo users and prediction CRUD that syncs to Vercel KV when configured. This is an admin UI demo, not production authorization.
+The admin page supports CRUD for shared demo users and prediction CRUD that syncs to Vercel KV when configured. This is an admin UI demo, not production authorization.
 
 Read-only points page:
 

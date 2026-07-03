@@ -2,24 +2,35 @@ from http.server import BaseHTTPRequestHandler
 
 from api.lib.responses import json_response
 from api.lib.scoring import score_prediction
-from api.lib.storage import list_predictions
+from api.lib.storage import list_predictions, list_users
 from api.matches import get_matches_payload
 
 
 def build_leaderboard_from_predictions():
     predictions = list_predictions()
-    if not predictions:
-        return []
-
     matches_payload = get_matches_payload()
     matches_by_id = {match["id"]: match for match in matches_payload.get("matches", [])}
     users = {}
+
+    for user in list_users(include_private=False):
+        user_key = user.get("id") or user.get("email") or user.get("displayName")
+        if not user_key:
+            continue
+        users[user_key] = {
+            "userId": user.get("id", ""),
+            "displayName": user.get("displayName") or user.get("email") or "Unknown",
+            "points": 0,
+            "correctWinners": 0,
+            "exactScores": 0,
+            "totalPredictions": 0,
+        }
 
     for prediction in predictions:
         user_key = prediction.get("userId") or prediction.get("userEmail") or prediction.get("displayName") or "anonymous"
         row = users.setdefault(
             user_key,
             {
+                "userId": prediction.get("userId", ""),
                 "displayName": prediction.get("displayName") or "Unknown",
                 "points": 0,
                 "correctWinners": 0,
@@ -51,7 +62,7 @@ def build_leaderboard_from_predictions():
 
 def get_leaderboard_payload():
     records = build_leaderboard_from_predictions()
-    return {"source": "predictions", "top10": records[:10], "overall": records}
+    return {"source": "server-users-and-predictions", "top10": records[:10], "overall": records}
 
 
 class handler(BaseHTTPRequestHandler):

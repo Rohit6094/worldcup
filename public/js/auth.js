@@ -12,32 +12,11 @@
   }
 
   function saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    localStorage.setItem(USERS_KEY, JSON.stringify(users || []));
   }
 
   function normalizeEmail(email) {
     return String(email || "").trim().toLowerCase();
-  }
-
-  function generateId() {
-    if (crypto.randomUUID) return crypto.randomUUID();
-    return `user-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-
-  function randomSalt() {
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
-
-  async function sha256(value) {
-    const encoded = new TextEncoder().encode(value);
-    const digest = await crypto.subtle.digest("SHA-256", encoded);
-    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
-
-  async function hashPassword(password, salt) {
-    return sha256(`${salt}:${password}`);
   }
 
   function validatePassword(password) {
@@ -49,6 +28,30 @@
     return "";
   }
 
+  async function requestAuth(url, options = {}) {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) {
+      throw new Error(payload.error || `Auth request failed with ${response.status}`);
+    }
+    return payload;
+  }
+
+  async function fetchUsers() {
+    try {
+      const payload = await requestAuth(`/api/auth?t=${Date.now()}`);
+      saveUsers(payload.users || []);
+      return payload.users || [];
+    } catch (error) {
+      console.warn("Using cached users because /api/auth is unavailable", error);
+      return getUsers();
+    }
+  }
+
   async function signUp({ displayName, email, password, confirmPassword, adminCode }) {
     const cleanEmail = normalizeEmail(email);
     const cleanName = String(displayName || "").trim();
@@ -58,94 +61,92 @@
     const passwordError = validatePassword(password);
     if (passwordError) return { success: false, error: passwordError };
 
-    const users = getUsers();
-    if (users.some((user) => user.email === cleanEmail)) {
-      return { success: false, error: "An account already exists for this email." };
+    try {
+      const result = await requestAuth("/api/auth", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "signup",
+          displayName: cleanName,
+          email: cleanEmail,
+          password,
+          adminCode,
+        }),
+      });
+      await fetchUsers();
+      setSession(result.user);
+      renderAuthNav();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message || "Account could not be created." };
     }
-
-    const salt = randomSalt();
-    const user = {
-      id: generateId(),
-      displayName: cleanName.slice(0, 80),
-      email: cleanEmail,
-      passwordHash: await hashPassword(password, salt),
-      salt,
-      role: String(adminCode || "").trim() === ADMIN_INVITE_CODE ? "admin" : "user",
-      createdAt: new Date().toISOString(),
-    };
-    users.push(user);
-    saveUsers(users);
-    setSession(user);
-    return { success: true, user: publicUser(user) };
   }
 
   async function adminSaveUser({ id, displayName, email, role, password }) {
-    const users = getUsers();
     const cleanName = String(displayName || "").trim().slice(0, 80);
     const cleanEmail = normalizeEmail(email);
-    const cleanRole = role === "admin" ? "admin" : "user";
     if (!cleanName) return { success: false, error: "Display name is required." };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { success: false, error: "Valid email is required." };
-
-    const existing = id ? users.find((user) => user.id === id) : null;
-    const emailTaken = users.some((user) => user.email === cleanEmail && user.id !== id);
-    if (emailTaken) return { success: false, error: "That email is already in use." };
-
-    if (existing) {
-      existing.displayName = cleanName;
-      existing.email = cleanEmail;
-      existing.role = cleanRole;
-      existing.updatedAt = new Date().toISOString();
-      if (password) {
-        const passwordError = validatePassword(password);
-        if (passwordError) return { success: false, error: passwordError };
-        existing.salt = randomSalt();
-        existing.passwordHash = await hashPassword(password, existing.salt);
-      }
-      saveUsers(users);
-      return { success: true, user: publicUser(existing) };
+    if (!id || password) {
+      const passwordError = validatePassword(password);
+      if (passwordError) return { success: false, error: passwordError };
     }
 
-    const passwordError = validatePassword(password);
-    if (passwordError) return { success: false, error: passwordError };
-    const salt = randomSalt();
-    const user = {
-      id: generateId(),
-      displayName: cleanName,
-      email: cleanEmail,
-      passwordHash: await hashPassword(password, salt),
-      salt,
-      role: cleanRole,
-      createdAt: new Date().toISOString(),
-    };
-    users.push(user);
-    saveUsers(users);
-    return { success: true, user: publicUser(user) };
+    try {
+      const result = await requestAuth("/api/auth", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "adminSaveUser",
+          id,
+          displayName: cleanName,
+          email: cleanEmail,
+          role,
+          password,
+        }),
+      });
+      await fetchUsers();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message || "User could not be saved." };
+    }
   }
 
-  function deleteUser(userId) {
+  async function deleteUser(userId) {
     const currentUser = getCurrentUser();
     if (currentUser?.id === userId) {
       return { success: false, error: "You cannot delete your current admin account." };
     }
-    const users = getUsers().filter((user) => user.id !== userId);
-    saveUsers(users);
-    return { success: true };
+    try {
+      const result = await requestAuth("/api/auth", {
+        method: "DELETE",
+        body: JSON.stringify({ id: userId }),
+      });
+      await fetchUsers();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message || "User could not be deleted." };
+    }
   }
 
   async function login({ email, password }) {
     const cleanEmail = normalizeEmail(email);
-    const users = getUsers();
-    const user = users.find((item) => item.email === cleanEmail);
-    if (!user) return { success: false, error: "Email or password is incorrect." };
-    const passwordHash = await hashPassword(password, user.salt);
-    if (passwordHash !== user.passwordHash) {
-      return { success: false, error: "Email or password is incorrect." };
+    if (!cleanEmail || !password) return { success: false, error: "Email or password is incorrect." };
+
+    try {
+      const result = await requestAuth("/api/auth", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "login",
+          email: cleanEmail,
+          password,
+        }),
+      });
+      await fetchUsers();
+      setSession(result.user);
+      renderAuthNav();
+      return result;
+    } catch (error) {
+      return { success: false, error: error.message || "Email or password is incorrect." };
     }
-    user.lastLoginAt = new Date().toISOString();
-    saveUsers(users);
-    setSession(user);
-    return { success: true, user: publicUser(user) };
   }
 
   function publicUser(user) {
@@ -164,6 +165,7 @@
       JSON.stringify({
         userId: user.id,
         email: user.email,
+        user: publicUser(user),
         startedAt: new Date().toISOString(),
       })
     );
@@ -173,6 +175,7 @@
     try {
       const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
       if (!session?.userId) return null;
+      if (session.user) return publicUser(session.user);
       const user = getUsers().find((item) => item.id === session.userId);
       return publicUser(user);
     } catch (error) {
@@ -245,11 +248,16 @@
       .replaceAll("'", "&#039;");
   }
 
-  document.addEventListener("DOMContentLoaded", renderAuthNav);
+  document.addEventListener("DOMContentLoaded", async () => {
+    renderAuthNav();
+    if (getCurrentUser()) await fetchUsers();
+    renderAuthNav();
+  });
 
   window.WCAuth = {
     ADMIN_INVITE_CODE,
     getUsers,
+    fetchUsers,
     adminSaveUser,
     deleteUser,
     signUp,

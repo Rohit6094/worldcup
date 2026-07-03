@@ -1,18 +1,28 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="WC 2026 Predict admin dashboard.">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="WC 2026 Predict admin dashboard." />
     <title>WC 2026 Predict | Admin</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" href="assets/logo.png" type="image/png" />
   </head>
   <body>
     <header class="site-header">
       <div class="container nav">
-        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
-          <img class="logo-mark" src="assets/logo.png" alt="" width="34" height="34">
+        <a
+          class="logo"
+          href="index.html"
+          aria-label="WC 2026 Predict dashboard"
+        >
+          <img
+            class="logo-mark"
+            src="assets/logo.png"
+            alt=""
+            width="34"
+            height="34"
+          />
           <span>WC 2026 Predict</span>
         </a>
         <nav class="nav-links" aria-label="Primary navigation">
@@ -36,7 +46,8 @@
             </div>
           </div>
           <div class="data-notice">
-            Demo admin access is browser-local. Production needs server-side roles, audit logs, protected APIs, and persistent storage.
+            Demo admin access is browser-local. Production needs server-side
+            roles, audit logs, protected APIs, and persistent storage.
           </div>
           <div class="scoring-grid" data-admin-stats></div>
         </div>
@@ -51,7 +62,7 @@
             </div>
           </div>
           <form class="admin-form" data-prediction-form-admin>
-            <input type="hidden" name="editingKey">
+            <input type="hidden" name="editingKey" />
             <h3 data-prediction-form-title>Create Prediction</h3>
             <div class="admin-form-grid">
               <label>
@@ -64,21 +75,41 @@
               </label>
               <label>
                 Predicted winner
-                <input type="text" name="predictedWinner" required>
+                <input type="text" name="predictedWinner" required />
               </label>
               <label>
                 Home score
-                <input type="number" name="homeScore" min="0" step="1" required>
+                <input
+                  type="number"
+                  name="homeScore"
+                  min="0"
+                  step="1"
+                  required
+                />
               </label>
               <label>
                 Away score
-                <input type="number" name="awayScore" min="0" step="1" required>
+                <input
+                  type="number"
+                  name="awayScore"
+                  min="0"
+                  step="1"
+                  required
+                />
               </label>
             </div>
             <p class="form-error" data-form-error role="alert"></p>
             <div class="card-actions">
-              <button class="btn btn-primary" type="submit">Save Prediction</button>
-              <button class="btn btn-ghost" type="button" data-reset-prediction-form>Reset</button>
+              <button class="btn btn-primary" type="submit">
+                Save Prediction
+              </button>
+              <button
+                class="btn btn-ghost"
+                type="button"
+                data-reset-prediction-form
+              >
+                Reset
+              </button>
             </div>
           </form>
           <div data-admin-predictions></div>
@@ -94,16 +125,16 @@
             </div>
           </div>
           <form class="admin-form" data-user-form>
-            <input type="hidden" name="userId">
+            <input type="hidden" name="userId" />
             <h3 data-user-form-title>Create User</h3>
             <div class="admin-form-grid">
               <label>
                 Display name
-                <input type="text" name="displayName" maxlength="80" required>
+                <input type="text" name="displayName" maxlength="80" required />
               </label>
               <label>
                 Email
-                <input type="email" name="email" required>
+                <input type="email" name="email" required />
               </label>
               <label>
                 Role
@@ -114,13 +145,20 @@
               </label>
               <label>
                 <span data-user-password-label>Temporary password</span>
-                <input type="password" name="password" minlength="10" autocomplete="new-password">
+                <input
+                  type="password"
+                  name="password"
+                  minlength="10"
+                  autocomplete="new-password"
+                />
               </label>
             </div>
             <p class="form-error" data-form-error role="alert"></p>
             <div class="card-actions">
               <button class="btn btn-primary" type="submit">Save User</button>
-              <button class="btn btn-ghost" type="button" data-reset-user-form>Reset</button>
+              <button class="btn btn-ghost" type="button" data-reset-user-form>
+                Reset
+              </button>
             </div>
           </form>
           <div data-admin-users></div>

@@ -10,16 +10,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   top10El.innerHTML = `<div class="loading-card">Loading leaderboard...</div>`;
   overallEl.innerHTML = `<div class="loading-card">Loading rankings...</div>`;
 
-  const [payload, matches, serverPredictions] = await Promise.all([
+  const [payload, matches, serverPredictions, sharedUsers] = await Promise.all([
     WCApp.fetchLeaderboard(),
     WCApp.fetchMatches(),
     WCApp.fetchPredictions(),
+    WCAuth.fetchUsers(),
   ]);
   const localPredictions = WCApp.getSavedPredictions();
   const predictions = mergePredictions(serverPredictions, localPredictions);
-  const localUsers = WCAuth.getUsers();
-  state.overall = localUsers.length || predictions.length
-    ? WCApp.buildLeaderboardFromPredictions(predictions, matches, localUsers)
+  state.overall = sharedUsers.length || predictions.length
+    ? WCApp.buildLeaderboardFromPredictions(predictions, matches, sharedUsers)
     : payload.overall;
   renderTop10(top10El, state.overall.slice(0, 10));
   renderOverall(overallEl, state);

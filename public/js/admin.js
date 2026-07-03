@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadAdminData() {
-  adminState.users = WCAuth.getUsers();
+  adminState.users = await WCAuth.fetchUsers();
   const serverPredictions = await WCApp.fetchPredictions();
   const localPredictions = WCApp.getSavedPredictions();
   adminState.predictions = mergePredictions(serverPredictions, localPredictions);
@@ -86,7 +86,7 @@ async function saveUserFromForm(event) {
   }
 
   resetUserForm();
-  adminState.users = WCAuth.getUsers();
+  adminState.users = await WCAuth.fetchUsers();
   renderAdmin();
   WCApp.showToast("User saved.");
 }
@@ -114,16 +114,16 @@ function editUser(userId) {
   form.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-function removeUser(userId) {
-  if (!confirm("Delete this local user? Their local predictions will also be removed.")) return;
-  const result = WCAuth.deleteUser(userId);
+async function removeUser(userId) {
+  if (!confirm("Delete this user? Their predictions will remain unless deleted separately.")) return;
+  const result = await WCAuth.deleteUser(userId);
   if (!result.success) {
     WCApp.showToast(result.error, "error");
     return;
   }
   const predictions = WCApp.getSavedPredictions().filter((prediction) => prediction.userId !== userId);
   localStorage.setItem("wc2026_predictions", JSON.stringify(predictions));
-  adminState.users = WCAuth.getUsers();
+  adminState.users = await WCAuth.fetchUsers();
   adminState.predictions = adminState.predictions.filter((prediction) => prediction.userId !== userId);
   renderAdmin();
   WCApp.showToast("User deleted.");
@@ -267,7 +267,7 @@ function renderPredictionTable() {
 function renderUserTable() {
   const container = document.querySelector("[data-admin-users]");
   if (!adminState.users.length) {
-    container.innerHTML = `<div class="empty-card">No local users exist yet.</div>`;
+    container.innerHTML = `<div class="empty-card">No users exist yet.</div>`;
     return;
   }
 

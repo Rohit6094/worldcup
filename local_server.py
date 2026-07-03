@@ -5,6 +5,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from api.auth import get_auth_payload, handle_auth_delete, handle_auth_post
+from api.lib.config import is_vercel_kv_configured
 from api.leaderboard import get_leaderboard_payload
 from api.match_details import get_match_details_payload
 from api.matches import get_matches_payload
@@ -84,7 +86,11 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/predictions":
             predictions = list_predictions()
-            self.send_json(200, {"source": "vercel-kv" if predictions else "empty", "predictions": predictions})
+            self.send_json(200, {"source": "vercel-kv" if is_vercel_kv_configured() else "local-json", "predictions": predictions})
+            return
+
+        if path == "/api/auth":
+            self.send_json(200, get_auth_payload())
             return
 
         if path == "/api/submit_prediction":
@@ -112,6 +118,18 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path.rstrip("/")
+        if path == "/api/auth":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0") or "0")
+                payload = json.loads(self.rfile.read(content_length).decode("utf-8") or "{}")
+            except Exception:
+                self.send_json(400, {"success": False, "error": "Invalid JSON body"})
+                return
+
+            result = handle_auth_post(payload)
+            self.send_json(200 if result.get("success") else 400, result)
+            return
+
         if path != "/api/submit_prediction":
             self.send_json(404, {"success": False, "error": "Endpoint not found"})
             return
@@ -148,6 +166,18 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         path = urlparse(self.path).path.rstrip("/")
+        if path == "/api/auth":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0") or "0")
+                payload = json.loads(self.rfile.read(content_length).decode("utf-8") or "{}")
+            except Exception:
+                self.send_json(400, {"success": False, "error": "Invalid JSON body"})
+                return
+
+            result = handle_auth_delete(payload)
+            self.send_json(200 if result.get("success") else 400, result)
+            return
+
         if path != "/api/predictions":
             self.send_json(404, {"success": False, "error": "Endpoint not found"})
             return

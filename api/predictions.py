@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 
+from api.lib.config import is_vercel_kv_configured
 from api.lib.responses import error_payload, json_response, parse_json_body
 from api.lib.storage import delete_prediction, list_predictions
 
@@ -13,7 +14,7 @@ class handler(BaseHTTPRequestHandler):
         json_response(
             self,
             200,
-            {"source": "vercel-kv" if predictions else "empty", "predictions": predictions},
+            {"source": "vercel-kv" if is_vercel_kv_configured() else "local-json", "predictions": predictions},
             cache_control="no-store",
             methods="GET, OPTIONS",
         )
