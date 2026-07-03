@@ -44,12 +44,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function mergePredictions(primary, fallback) {
-  const map = new Map();
+  const merged = [];
   [...fallback, ...primary].forEach((prediction) => {
-    const key = `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
-    map.set(key, prediction);
+    const existingIndex = merged.findIndex((item) => WCApp.samePredictionRecord(item, prediction));
+    if (existingIndex >= 0) {
+      merged[existingIndex] = prediction;
+      return;
+    }
+    merged.push(prediction);
   });
-  return Array.from(map.values());
+  return merged;
 }
 
 function renderTop10(container, rows) {
@@ -105,9 +109,9 @@ function renderOverall(container, state) {
           ${sorted
             .map((row) => `
               <tr>
-                <td>#${row.rank}</td>
-                <td>${WCApp.escapeHtml(row.displayName)}</td>
-                <td><strong>${row.points}</strong></td>
+                <td><span class="rank-chip">#${row.rank}</span></td>
+                <td><span class="table-user">${WCApp.escapeHtml(row.displayName)}</span></td>
+                <td><strong class="${Number(row.points || 0) > 0 ? "points-positive" : "points-muted"}">${row.points}</strong></td>
                 <td>${row.correctWinners}</td>
                 <td>${row.exactScores}</td>
                 <td>${row.totalPredictions}</td>

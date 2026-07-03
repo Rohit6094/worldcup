@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 
 from api.lib.responses import json_response
 from api.lib.scoring import score_prediction
-from api.lib.storage import list_predictions, list_users
+from api.lib.storage import list_predictions, list_users, prediction_identity_values, user_identity_values
 from api.matches import get_matches_payload
 
 
@@ -11,6 +11,7 @@ def build_leaderboard_from_predictions():
     matches_payload = get_matches_payload()
     matches_by_id = {match["id"]: match for match in matches_payload.get("matches", [])}
     users = {}
+    identity_index = {}
 
     for user in list_users(include_private=False):
         user_key = user.get("id") or user.get("username") or user.get("email") or user.get("displayName")
@@ -24,9 +25,13 @@ def build_leaderboard_from_predictions():
             "exactScores": 0,
             "totalPredictions": 0,
         }
+        for identity in user_identity_values(user):
+            identity_index[identity] = user_key
 
     for prediction in predictions:
-        user_key = prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or prediction.get("displayName") or "anonymous"
+        prediction_identities = prediction_identity_values(prediction)
+        user_key = next((identity_index[identity] for identity in prediction_identities if identity in identity_index), None)
+        user_key = user_key or prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or prediction.get("displayName") or "anonymous"
         row = users.setdefault(
             user_key,
             {
@@ -45,6 +50,8 @@ def build_leaderboard_from_predictions():
             row["correctWinners"] += 1
         if scored["exactScore"]:
             row["exactScores"] += 1
+        for identity in prediction_identities:
+            identity_index[identity] = user_key
 
     records = sorted(
         users.values(),

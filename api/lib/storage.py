@@ -21,14 +21,69 @@ PREDICTIONS_FILE = DATA_DIR / "predictions.json"
 SESSIONS_FILE = DATA_DIR / "sessions.json"
 
 
+def _clean_identity(value):
+    return str(value or "").strip().lower()
+
+
 def prediction_key(prediction):
-    user_id = prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or "anonymous"
+    user_id = prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or prediction.get("displayName") or "anonymous"
     return f"wc2026:prediction:{user_id}:{prediction['matchId']}"
 
 
-def prediction_key_from_parts(match_id, user_id="", user_email=""):
-    user_key = user_id or user_email or "anonymous"
+def prediction_key_from_parts(match_id, user_id="", user_email="", username="", display_name=""):
+    user_key = user_id or username or user_email or display_name or "anonymous"
     return f"wc2026:prediction:{user_key}:{match_id}"
+
+
+def target_identity_values(user_id="", user_email="", username="", display_name=""):
+    return {
+        value
+        for value in (
+            _clean_identity(user_id),
+            normalize_username(username),
+            normalize_email(user_email),
+            normalize_username(display_name),
+        )
+        if value
+    }
+
+
+def prediction_identity_values(prediction):
+    return {
+        value
+        for value in (
+            _clean_identity(prediction.get("userId")),
+            normalize_username(prediction.get("username")),
+            normalize_email(prediction.get("userEmail")),
+            normalize_username(prediction.get("displayName")),
+        )
+        if value
+    }
+
+
+def prediction_matches_target(prediction, match_id, user_id="", user_email="", username="", display_name=""):
+    if str(prediction.get("matchId", "")) != str(match_id):
+        return False
+    identities = target_identity_values(user_id, user_email, username, display_name)
+    prediction_identities = prediction_identity_values(prediction)
+    return bool(identities and prediction_identities and identities.intersection(prediction_identities))
+
+
+def dedupe_predictions(predictions):
+    deduped = []
+    for prediction in sorted(predictions, key=lambda row: row.get("submittedAt", ""), reverse=True):
+        duplicate = False
+        for existing in deduped:
+            if str(existing.get("matchId", "")) != str(prediction.get("matchId", "")):
+                continue
+            existing_ids = prediction_identity_values(existing)
+            prediction_ids = prediction_identity_values(prediction)
+            if existing_ids and prediction_ids and existing_ids.intersection(prediction_ids):
+                duplicate = True
+                break
+        if not duplicate:
+            deduped.append(prediction)
+    return deduped
 
 
 def session_token_hash(token):
@@ -76,12 +131,34 @@ def save_prediction(prediction):
 
     if is_vercel_kv_configured():
         key = prediction_key(saved)
+        for existing_key, existing_prediction in read_kv_prediction_entries():
+            if prediction_matches_target(
+                existing_prediction,
+                saved.get("matchId", ""),
+                saved.get("userId", ""),
+                saved.get("userEmail", ""),
+                saved.get("username", ""),
+                saved.get("displayName", ""),
+            ):
+                kv_command(["DEL", existing_key])
+                kv_command(["SREM", PREDICTION_KEYS_SET, existing_key])
+        saved["storage"] = "vercel-kv"
         kv_command(["SET", key, json.dumps(saved, ensure_ascii=False)])
         kv_command(["SADD", PREDICTION_KEYS_SET, key])
-        saved["storage"] = "vercel-kv"
     else:
         key = prediction_key(saved)
-        predictions = [item for item in read_local_predictions() if prediction_key(item) != key]
+        predictions = [
+            item
+            for item in read_local_predictions()
+            if not prediction_matches_target(
+                item,
+                saved.get("matchId", ""),
+                saved.get("userId", ""),
+                saved.get("userEmail", ""),
+                saved.get("username", ""),
+                saved.get("displayName", ""),
+            )
+        ]
         saved["storage"] = "local-json"
         predictions.append(saved)
         write_local_predictions(predictions)
@@ -90,14 +167,14 @@ def save_prediction(prediction):
     return saved
 
 
-def list_predictions():
+def read_kv_prediction_entries():
     if not is_vercel_kv_configured():
-        return sorted(read_local_predictions(), key=lambda row: row.get("submittedAt", ""), reverse=True)
+        return []
 
     keys_response = kv_command(["SMEMBERS", PREDICTION_KEYS_SET])
     keys = (keys_response or {}).get("result") or []
     selected_keys = keys[:1000]
-    predictions = []
+    entries = []
 
     if selected_keys:
         try:
@@ -106,14 +183,14 @@ def list_predictions():
             values = []
 
         if values:
-            for value in values:
+            for key, value in zip(selected_keys, values):
                 if not value:
                     continue
                 try:
-                    predictions.append(json.loads(value))
+                    entries.append((key, json.loads(value)))
                 except json.JSONDecodeError:
                     continue
-            return sorted(predictions, key=lambda row: row.get("submittedAt", ""), reverse=True)
+            return entries
 
     for key in selected_keys:
         item = kv_command(["GET", key])
@@ -121,23 +198,47 @@ def list_predictions():
         if not value:
             continue
         try:
-            predictions.append(json.loads(value))
+            entries.append((key, json.loads(value)))
         except json.JSONDecodeError:
             continue
-    return sorted(predictions, key=lambda row: row.get("submittedAt", ""), reverse=True)
+    return entries
 
 
-def delete_prediction(match_id, user_id="", user_email=""):
+def list_predictions():
     if not is_vercel_kv_configured():
-        key = prediction_key_from_parts(match_id, user_id, user_email)
-        predictions = [item for item in read_local_predictions() if prediction_key(item) != key]
-        write_local_predictions(predictions)
-        return {"deleted": True, "storage": "local-json", "key": key}
+        return dedupe_predictions(read_local_predictions())
 
-    key = prediction_key_from_parts(match_id, user_id, user_email)
-    kv_command(["DEL", key])
-    kv_command(["SREM", PREDICTION_KEYS_SET, key])
-    return {"deleted": True, "storage": "vercel-kv", "key": key}
+    return dedupe_predictions([prediction for _, prediction in read_kv_prediction_entries()])
+
+
+def delete_prediction(match_id, user_id="", user_email="", username="", display_name=""):
+    if not is_vercel_kv_configured():
+        before = read_local_predictions()
+        predictions = [
+            item
+            for item in before
+            if not prediction_matches_target(item, match_id, user_id, user_email, username, display_name)
+        ]
+        write_local_predictions(predictions)
+        return {
+            "deleted": True,
+            "deletedCount": len(before) - len(predictions),
+            "storage": "local-json",
+            "key": prediction_key_from_parts(match_id, user_id, user_email, username, display_name),
+        }
+
+    matched_keys = {
+        key
+        for key, prediction in read_kv_prediction_entries()
+        if prediction_matches_target(prediction, match_id, user_id, user_email, username, display_name)
+    }
+    keys_to_delete = set(matched_keys)
+    fallback_key = prediction_key_from_parts(match_id, user_id, user_email, username, display_name)
+    keys_to_delete.add(fallback_key)
+    for key in keys_to_delete:
+        kv_command(["DEL", key])
+        kv_command(["SREM", PREDICTION_KEYS_SET, key])
+    return {"deleted": True, "deletedCount": len(matched_keys), "storage": "vercel-kv", "key": fallback_key}
 
 
 def create_session(user):
@@ -508,7 +609,9 @@ def delete_predictions_for_user(user):
             delete_prediction(
                 prediction.get("matchId", ""),
                 prediction.get("userId", ""),
-                prediction.get("username") or prediction.get("userEmail") or prediction.get("displayName") or "",
+                prediction.get("userEmail", ""),
+                prediction.get("username", ""),
+                prediction.get("displayName", ""),
             )
     else:
         remaining = [prediction for prediction in predictions if not prediction_belongs_to_user(prediction, user)]

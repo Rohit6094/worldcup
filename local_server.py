@@ -10,7 +10,7 @@ from api.lib.config import is_vercel_kv_configured
 from api.leaderboard import get_leaderboard_payload
 from api.match_details import get_match_details_payload
 from api.matches import get_matches_payload
-from api.lib.storage import delete_prediction, list_predictions, save_prediction
+from api.lib.storage import delete_prediction, list_predictions, prediction_identity_values, save_prediction, target_identity_values
 from api.submit_prediction import validate_prediction, validate_prediction_cutoff
 
 
@@ -203,9 +203,11 @@ class LocalHandler(SimpleHTTPRequestHandler):
 
         match_id = str(payload.get("matchId", "")).strip()
         user_id = str(payload.get("userId", "")).strip()
-        user_email = str(payload.get("username") or payload.get("userEmail", "")).strip()
-        if not match_id or not (user_id or user_email):
-            self.send_json(400, {"success": False, "error": "matchId and userId or userEmail are required"})
+        username = str(payload.get("username", "")).strip()
+        user_email = str(payload.get("userEmail", "")).strip()
+        display_name = str(payload.get("displayName", "")).strip()
+        if not match_id or not target_identity_values(user_id, user_email, username, display_name):
+            self.send_json(400, {"success": False, "error": "matchId and a user identifier are required"})
             return
 
         requester = authenticated_user_from_headers(self.headers)
@@ -213,8 +215,14 @@ class LocalHandler(SimpleHTTPRequestHandler):
             str((requester or {}).get("id") or "").strip().lower(),
             str((requester or {}).get("username") or "").strip().lower(),
             str((requester or {}).get("email") or "").strip().lower(),
+            str((requester or {}).get("displayName") or "").strip().lower(),
         } - {""}
-        target_keys = {user_id.strip().lower(), user_email.strip().lower()} - {""}
+        target_keys = prediction_identity_values({
+            "userId": user_id,
+            "username": username,
+            "userEmail": user_email,
+            "displayName": display_name,
+        })
         if not requester:
             self.send_json(401, {"success": False, "error": "Login is required to delete predictions"})
             return
@@ -227,7 +235,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 self.send_json(400, {"success": False, "error": cutoff_error, "code": "prediction_locked"})
                 return
 
-        result = delete_prediction(match_id, user_id, user_email)
+        result = delete_prediction(match_id, user_id, user_email, username, display_name)
         self.send_json(200, {"success": True, **result})
 
 

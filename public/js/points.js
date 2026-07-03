@@ -3,6 +3,8 @@ const pointsState = {
   matches: [],
   predictions: [],
   rows: [],
+  userQuery: "",
+  overallQuery: "",
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -10,6 +12,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   pointsState.currentUser = WCAuth.getCurrentUser();
   await loadPredictionPoints();
+
+  document.querySelector("[data-user-prediction-search]")?.addEventListener("input", (event) => {
+    pointsState.userQuery = event.target.value.trim().toLowerCase();
+    renderUserPredictions(getUserRows(pointsState.rows, pointsState.currentUser), pointsState.currentUser);
+  });
+
+  document.querySelector("[data-overall-prediction-search]")?.addEventListener("input", (event) => {
+    pointsState.overallQuery = event.target.value.trim().toLowerCase();
+    renderOverallPredictions(pointsState.rows);
+  });
 
   document.addEventListener("wc:matches-updated", (event) => {
     if (!Array.isArray(event.detail?.matches)) return;
@@ -79,12 +91,16 @@ async function loadPredictionPoints() {
 }
 
 function mergePredictions(primary, fallback) {
-  const map = new Map();
+  const merged = [];
   [...fallback, ...primary].forEach((prediction) => {
-    const key = predictionKey(prediction);
-    map.set(key, prediction);
+    const existingIndex = merged.findIndex((item) => WCApp.samePredictionRecord(item, prediction));
+    if (existingIndex >= 0) {
+      merged[existingIndex] = prediction;
+      return;
+    }
+    merged.push(prediction);
   });
-  return Array.from(map.values()).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  return merged.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
 }
 
 function predictionKey(prediction) {
@@ -93,14 +109,12 @@ function predictionKey(prediction) {
 
 function ownsPrediction(row, currentUser) {
   if (!currentUser) return false;
-  const userValues = new Set(
-    [currentUser.id, currentUser.username, currentUser.email]
-      .filter(Boolean)
-      .map((value) => String(value).trim().toLowerCase())
-  );
-  return [row.userId, row.username, row.userEmail]
-    .filter(Boolean)
-    .some((value) => userValues.has(String(value).trim().toLowerCase()));
+  return WCApp.samePredictionOwner(row, {
+    userId: currentUser.id,
+    username: currentUser.username,
+    userEmail: currentUser.email,
+    displayName: currentUser.displayName,
+  });
 }
 
 function getUserRows(rows, currentUser) {
@@ -148,12 +162,41 @@ function renderUserPredictions(userRows, currentUser) {
     return;
   }
 
-  renderPredictionTable(container, userRows, "You have not submitted predictions yet.", { allowActions: true });
+  const filteredRows = filterPredictionRows(userRows, pointsState.userQuery);
+  renderPredictionTable(container, filteredRows, pointsState.userQuery ? "No matching predictions found." : "You have not submitted predictions yet.", { allowActions: true });
 }
 
 function renderOverallPredictions(rows) {
   const container = document.querySelector("[data-overall-points]");
-  renderPredictionTable(container, rows, "No predictions have been submitted yet.", { allowActions: false });
+  const filteredRows = filterPredictionRows(rows, pointsState.overallQuery);
+  renderPredictionTable(container, filteredRows, pointsState.overallQuery ? "No matching predictions found." : "No predictions have been submitted yet.", { allowActions: false });
+}
+
+function filterPredictionRows(rows, query) {
+  if (!query) return rows;
+  return rows.filter((row) => predictionSearchText(row).includes(query));
+}
+
+function predictionSearchText(row) {
+  const match = row.match;
+  return [
+    row.displayName,
+    row.username,
+    row.userEmail,
+    row.predictedWinner,
+    row.advancingTeam,
+    row.homeScore,
+    row.awayScore,
+    row.matchId,
+    match?.stage,
+    match?.homeTeam?.name,
+    match?.awayTeam?.name,
+    match?.venue,
+    match?.city,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .join(" ")
+    .toLowerCase();
 }
 
 function renderPredictionTable(container, rows, emptyMessage, options = {}) {
@@ -189,15 +232,22 @@ function renderPredictionTable(container, rows, emptyMessage, options = {}) {
 function renderPredictionRow(row, allowActions) {
   const matchLabel = row.match ? `${row.match.homeTeam.name} vs ${row.match.awayTeam.name}` : row.matchId;
   const result = row.match && row.match.status === "completed" ? WCApp.scoreText(row.match) : "Pending";
+  const pointsClass = Number(row.points || 0) > 0 ? "points-positive" : "points-muted";
   return `
     <tr>
-      <td>${WCApp.escapeHtml(row.displayName || row.username || row.userEmail || "Unknown")}</td>
-      <td>${WCApp.escapeHtml(matchLabel)}</td>
-      <td>${WCApp.escapeHtml(row.predictedWinner)} (${WCApp.escapeHtml(WCApp.predictionScoreText(row))})</td>
+      <td><span class="table-user">${WCApp.escapeHtml(row.displayName || row.username || row.userEmail || "Unknown")}</span></td>
+      <td>
+        <span class="table-match">${WCApp.escapeHtml(matchLabel)}</span>
+        <small>${WCApp.escapeHtml(row.match?.stage || "Fixture")}</small>
+      </td>
+      <td>
+        <span class="table-pill">${WCApp.escapeHtml(row.predictedWinner)}</span>
+        <small>${WCApp.escapeHtml(WCApp.predictionScoreText(row))}</small>
+      </td>
       <td>${WCApp.escapeHtml(result)}</td>
-      <td>${row.correctWinner ? "Yes" : "No"}</td>
-      <td>${row.exactScore ? "Yes" : "No"}</td>
-      <td><strong>${row.points}</strong></td>
+      <td><span class="status-dot ${row.correctWinner ? "is-good" : "is-muted"}">${row.correctWinner ? "Yes" : "No"}</span></td>
+      <td><span class="status-dot ${row.exactScore ? "is-good" : "is-muted"}">${row.exactScore ? "Yes" : "No"}</span></td>
+      <td><strong class="${pointsClass}">${row.points}</strong></td>
       ${allowActions ? `<td class="table-actions">${renderPredictionActions(row)}</td>` : ""}
     </tr>
   `;

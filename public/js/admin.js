@@ -35,12 +35,16 @@ function renderAdmin() {
 }
 
 function mergePredictions(primary, fallback) {
-  const map = new Map();
+  const merged = [];
   [...fallback, ...primary].forEach((prediction) => {
-    const key = `${prediction.userId || prediction.username || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
-    map.set(key, prediction);
+    const existingIndex = merged.findIndex((item) => WCApp.samePredictionRecord(item, prediction));
+    if (existingIndex >= 0) {
+      merged[existingIndex] = prediction;
+      return;
+    }
+    merged.push(prediction);
   });
-  return Array.from(map.values()).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  return merged.sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
 }
 
 function renderAdminStats() {

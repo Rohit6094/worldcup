@@ -3,12 +3,8 @@ from http.server import BaseHTTPRequestHandler
 from api.auth import authenticated_user_from_headers
 from api.lib.config import is_vercel_kv_configured
 from api.lib.responses import error_payload, json_response, parse_json_body
-from api.lib.storage import delete_prediction, list_predictions
+from api.lib.storage import delete_prediction, list_predictions, prediction_identity_values, target_identity_values
 from api.submit_prediction import validate_prediction_cutoff
-
-
-def prediction_owner_key(prediction):
-    return str(prediction.get("userId") or prediction.get("username") or prediction.get("userEmail") or "").strip().lower()
 
 
 def user_keys(user):
@@ -16,13 +12,14 @@ def user_keys(user):
         str(user.get("id") or "").strip().lower(),
         str(user.get("username") or "").strip().lower(),
         str(user.get("email") or "").strip().lower(),
+        str(user.get("displayName") or "").strip().lower(),
     } - {""}
 
 
 def requester_can_access_prediction(requester, prediction):
     if requester.get("role") == "admin":
         return True
-    return prediction_owner_key(prediction) in user_keys(requester)
+    return bool(user_keys(requester).intersection(prediction_identity_values(prediction)))
 
 
 class handler(BaseHTTPRequestHandler):
@@ -58,12 +55,14 @@ class handler(BaseHTTPRequestHandler):
 
         match_id = str(payload.get("matchId", "")).strip()
         user_id = str(payload.get("userId", "")).strip()
-        user_email = str(payload.get("username") or payload.get("userEmail", "")).strip()
-        if not match_id or not (user_id or user_email):
+        username = str(payload.get("username", "")).strip()
+        user_email = str(payload.get("userEmail", "")).strip()
+        display_name = str(payload.get("displayName", "")).strip()
+        if not match_id or not target_identity_values(user_id, user_email, username, display_name):
             json_response(
                 self,
                 400,
-                error_payload("matchId and userId or userEmail are required", "validation_error"),
+                error_payload("matchId and a user identifier are required", "validation_error"),
                 methods="GET, DELETE, OPTIONS",
             )
             return
@@ -71,8 +70,9 @@ class handler(BaseHTTPRequestHandler):
         target = {
             "matchId": match_id,
             "userId": user_id,
-            "username": payload.get("username", ""),
+            "username": username,
             "userEmail": user_email,
+            "displayName": display_name,
         }
         if not requester_can_access_prediction(requester, target):
             json_response(self, 403, error_payload("You can only delete your own predictions", "forbidden"), methods="GET, DELETE, OPTIONS")
@@ -83,5 +83,5 @@ class handler(BaseHTTPRequestHandler):
                 json_response(self, 400, error_payload(cutoff_error, "prediction_locked"), methods="GET, DELETE, OPTIONS")
                 return
 
-        result = delete_prediction(match_id, user_id, user_email)
+        result = delete_prediction(match_id, user_id, user_email, username, display_name)
         json_response(self, 200, {"success": True, **result}, cache_control="no-store", methods="GET, DELETE, OPTIONS")

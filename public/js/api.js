@@ -505,6 +505,7 @@
           userId: prediction.userId || "",
           username: prediction.username || "",
           userEmail: prediction.userEmail || "",
+          displayName: prediction.displayName || "",
         }),
       });
     } catch (error) {
@@ -514,10 +515,7 @@
   }
 
   function removePredictionLocally(prediction) {
-    const predictions = getSavedPredictions().filter((item) => {
-      const sameUser = (item.userId || item.username || item.userEmail || item.displayName) === (prediction.userId || prediction.username || prediction.userEmail || prediction.displayName);
-      return !(sameUser && item.matchId === prediction.matchId);
-    });
+    const predictions = getSavedPredictions().filter((item) => !samePredictionRecord(item, prediction));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
     document.dispatchEvent(new CustomEvent("wc:predictions-changed"));
   }
@@ -549,8 +547,11 @@
 
   function buildLeaderboardFromPredictions(predictions, matches, users = []) {
     const rows = new Map();
+    const identityIndex = new Map();
     users.forEach((user) => {
-      rows.set(user.id, {
+      const key = user.id || user.username || user.email || user.displayName;
+      if (!key) return;
+      rows.set(key, {
         userId: user.id,
         displayName: user.displayName,
         points: 0,
@@ -558,10 +559,15 @@
         exactScores: 0,
         totalPredictions: 0,
       });
+      predictionIdentityValues(currentUserPredictionTarget(user)).forEach((identity) => {
+        identityIndex.set(identity, key);
+      });
     });
 
     buildPredictionRows(predictions, matches).forEach((prediction) => {
-      const key = prediction.userId || prediction.username || prediction.userEmail || prediction.displayName || "anonymous";
+      const identities = predictionIdentityValues(prediction);
+      const existingKey = identities.map((identity) => identityIndex.get(identity)).find(Boolean);
+      const key = existingKey || prediction.userId || prediction.username || prediction.userEmail || prediction.displayName || "anonymous";
       const row = rows.get(key) || {
         userId: prediction.userId || "",
         displayName: prediction.displayName || prediction.username || prediction.userEmail || "Unknown",
@@ -576,6 +582,7 @@
       row.exactScores += prediction.exactScore ? 1 : 0;
       row.totalPredictions += 1;
       rows.set(key, row);
+      identities.forEach((identity) => identityIndex.set(identity, key));
     });
 
     return assignLeaderboardRanks(
@@ -648,12 +655,38 @@
     }
   }
 
+  function normalizeIdentity(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function predictionIdentityValues(prediction) {
+    return [prediction?.userId, prediction?.username, prediction?.userEmail, prediction?.displayName]
+      .map(normalizeIdentity)
+      .filter(Boolean);
+  }
+
+  function currentUserPredictionTarget(user) {
+    return {
+      userId: user?.id || "",
+      username: user?.username || user?.email || "",
+      userEmail: user?.email || user?.username || "",
+      displayName: user?.displayName || "",
+    };
+  }
+
+  function samePredictionOwner(left, right) {
+    const leftValues = new Set(predictionIdentityValues(left));
+    return predictionIdentityValues(right).some((value) => leftValues.has(value));
+  }
+
+  function samePredictionRecord(left, right) {
+    return String(left?.matchId || "") === String(right?.matchId || "") && samePredictionOwner(left, right);
+  }
+
   function savePredictionLocally(prediction) {
     const user = window.WCAuth?.getCurrentUser?.();
-    const predictions = getSavedPredictions().filter((item) => {
-      if (user) return !(item.matchId === prediction.matchId && item.userId === user.id);
-      return item.matchId !== prediction.matchId;
-    });
+    const target = user ? { ...prediction, ...currentUserPredictionTarget(user) } : prediction;
+    const predictions = getSavedPredictions().filter((item) => !samePredictionRecord(item, target));
     predictions.push(prediction);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
     document.dispatchEvent(new CustomEvent("wc:predictions-changed"));
@@ -661,8 +694,9 @@
 
   function getPredictionForMatch(matchId) {
     const user = window.WCAuth?.getCurrentUser?.();
+    const target = user ? currentUserPredictionTarget(user) : {};
     return getSavedPredictions().find((prediction) => {
-      if (user) return prediction.matchId === matchId && prediction.userId === user.id;
+      if (user) return String(prediction.matchId) === String(matchId) && samePredictionOwner(prediction, target);
       return prediction.matchId === matchId && !prediction.userId;
     });
   }
@@ -954,6 +988,9 @@
     formatFullDateTime,
     getSavedPredictions,
     getPredictionForMatch,
+    predictionIdentityValues,
+    samePredictionOwner,
+    samePredictionRecord,
     isPredictionOpen,
     predictionLockText,
     timeLeftText,
