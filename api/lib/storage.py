@@ -243,11 +243,9 @@ def persist_user(user):
 
 
 def create_user(display_name, email="", password="", role="user", username=""):
-    clean_name = str(display_name or "").strip()[:80]
     clean_username = normalize_username(username or email)
+    clean_name = (str(display_name or "").strip() or clean_username)[:80]
     clean_role = "admin" if role == "admin" else "user"
-    if not clean_name:
-        return {"success": False, "error": "Enter your display name."}
     if not clean_username:
         return {"success": False, "error": "Enter a username."}
     password_error = validate_password(password)

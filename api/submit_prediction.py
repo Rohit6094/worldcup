@@ -23,13 +23,15 @@ def validate_prediction(payload):
         return "displayName is required"
     if not str(payload.get("predictedWinner", "")).strip():
         return "predictedWinner is required"
+    if not str(payload.get("advancingTeam", "")).strip():
+        return "advancingTeam is required"
     if not is_non_negative_integer(payload.get("homeScore")):
         return "homeScore must be a non-negative integer"
     if not is_non_negative_integer(payload.get("awayScore")):
         return "awayScore must be a non-negative integer"
+    if payload.get("predictedWinner") != "Draw / Penalties" and payload.get("advancingTeam") != payload.get("predictedWinner"):
+        return "advancingTeam must match predictedWinner unless predicting Draw / Penalties"
     if payload.get("predictedWinner") == "Draw / Penalties":
-        if not str(payload.get("advancingTeam", "")).strip():
-            return "advancingTeam is required for penalty predictions"
         if payload.get("homeScore") != payload.get("awayScore"):
             return "main score must be tied for penalty predictions"
         if not is_non_negative_integer(payload.get("penaltyHomeScore")):

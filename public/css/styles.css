@@ -116,6 +116,8 @@ button {
 .nav-links {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex: 1;
   gap: 6px;
 }
 
@@ -138,6 +140,7 @@ button {
 .auth-nav {
   display: inline-flex;
   align-items: center;
+  margin-left: auto;
   gap: 6px;
 }
 

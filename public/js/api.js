@@ -3,22 +3,65 @@
   let lastMatchesMeta = { source: "unknown" };
 
   const teamCountryCodes = {
+    Algeria: "dz",
     Argentina: "ar",
+    Australia: "au",
+    Austria: "at",
+    Belgium: "be",
+    "Bosnia-Herzegovina": "ba",
+    "Bosnia and Herzegovina": "ba",
     Brazil: "br",
+    Cameroon: "cm",
+    Canada: "ca",
+    "Cape Verde": "cv",
+    "Cape Verde Islands": "cv",
+    Chile: "cl",
+    Colombia: "co",
+    "Congo DR": "cd",
+    "Costa Rica": "cr",
+    Croatia: "hr",
+    Denmark: "dk",
+    Ecuador: "ec",
+    Egypt: "eg",
     England: "gb-eng",
     France: "fr",
     Germany: "de",
     Ghana: "gh",
+    Haiti: "ht",
+    Iran: "ir",
+    "IR Iran": "ir",
+    Italy: "it",
+    "Ivory Coast": "ci",
+    Jamaica: "jm",
     Japan: "jp",
+    "Korea Republic": "kr",
     Mexico: "mx",
     Morocco: "ma",
     Netherlands: "nl",
+    "New Zealand": "nz",
+    Nigeria: "ng",
+    Norway: "no",
+    Panama: "pa",
+    Paraguay: "py",
+    Poland: "pl",
     Portugal: "pt",
+    Qatar: "qa",
+    "Saudi Arabia": "sa",
+    Scotland: "gb-sct",
     Senegal: "sn",
+    Serbia: "rs",
+    "South Africa": "za",
     Spain: "es",
+    Sweden: "se",
     "South Korea": "kr",
+    Switzerland: "ch",
+    Tunisia: "tn",
+    Turkey: "tr",
+    Ukraine: "ua",
     "United States": "us",
     USA: "us",
+    Uruguay: "uy",
+    Wales: "gb-wls",
   };
 
   const fallbackFlag =
@@ -570,8 +613,8 @@
               Predicted winner
               <select name="predictedWinner" required></select>
             </label>
-            <label data-advancing-wrap hidden>
-              Advancing team after penalties
+            <label data-advancing-wrap>
+              Advancing team
               <select name="advancingTeam"></select>
             </label>
             <div class="score-inputs">
@@ -686,8 +729,12 @@
         errorEl.textContent = "A draw / penalties prediction should use a tied score.";
         return;
       }
-      if (form.elements.predictedWinner.value === "Draw / Penalties" && !form.elements.advancingTeam.value) {
-        errorEl.textContent = "Select the team advancing after penalties.";
+      if (!form.elements.advancingTeam.value) {
+        errorEl.textContent = "Select the team advancing to the next round.";
+        return;
+      }
+      if (form.elements.predictedWinner.value !== "Draw / Penalties" && form.elements.advancingTeam.value !== form.elements.predictedWinner.value) {
+        errorEl.textContent = "Advancing team must match the predicted winner unless you choose Draw / Penalties.";
         return;
       }
       if (form.elements.predictedWinner.value === "Draw / Penalties") {
@@ -708,7 +755,7 @@
         username: currentUser.username || currentUser.email,
         displayName: currentUser.displayName,
         predictedWinner: form.elements.predictedWinner.value,
-        advancingTeam: form.elements.predictedWinner.value === "Draw / Penalties" ? form.elements.advancingTeam.value : "",
+        advancingTeam: form.elements.advancingTeam.value,
         homeScore,
         awayScore,
         penaltyHomeScore: form.elements.predictedWinner.value === "Draw / Penalties" ? penaltyHomeScore : null,
@@ -749,14 +796,13 @@
   function updateAdvancingVisibility(form) {
     const wrap = form.querySelector("[data-advancing-wrap]");
     const penaltyWrap = form.querySelector("[data-penalty-score-wrap]");
-    const needsAdvancingTeam = form.elements.predictedWinner.value === "Draw / Penalties";
-    wrap.hidden = !needsAdvancingTeam;
-    penaltyWrap.hidden = !needsAdvancingTeam;
-    form.elements.advancingTeam.required = needsAdvancingTeam;
-    form.elements.penaltyHomeScore.required = needsAdvancingTeam;
-    form.elements.penaltyAwayScore.required = needsAdvancingTeam;
-    if (!needsAdvancingTeam) form.elements.advancingTeam.value = "";
-    if (!needsAdvancingTeam) {
+    const needsPenaltyScore = form.elements.predictedWinner.value === "Draw / Penalties";
+    wrap.hidden = false;
+    penaltyWrap.hidden = !needsPenaltyScore;
+    form.elements.advancingTeam.required = true;
+    form.elements.penaltyHomeScore.required = needsPenaltyScore;
+    form.elements.penaltyAwayScore.required = needsPenaltyScore;
+    if (!needsPenaltyScore) {
       form.elements.penaltyHomeScore.value = "";
       form.elements.penaltyAwayScore.value = "";
     }

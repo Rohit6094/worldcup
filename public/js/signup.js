@@ -15,7 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
     submitButton.disabled = true;
     submitButton.textContent = "Creating account...";
     const result = await WCAuth.signUp({
-      displayName: form.elements.displayName.value,
       username: form.elements.username.value,
       password: form.elements.password.value,
       confirmPassword: form.elements.confirmPassword.value,
@@ -28,6 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
       errorEl.textContent = result.error;
       return;
     }
-    location.href = nextUrl;
+    location.href = `login.html?next=${encodeURIComponent(nextUrl)}`;
   });
 });

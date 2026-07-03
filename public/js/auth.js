@@ -49,8 +49,7 @@
 
   async function signUp({ displayName, username, password, confirmPassword, adminCode }) {
     const cleanUsername = normalizeUsername(username);
-    const cleanName = String(displayName || "").trim();
-    if (!cleanName) return { success: false, error: "Enter your display name." };
+    const cleanName = String(displayName || cleanUsername).trim();
     if (!cleanUsername) return { success: false, error: "Enter a username." };
     if (password !== confirmPassword) return { success: false, error: "Passwords do not match." };
     const passwordError = validatePassword(password);
@@ -68,7 +67,6 @@
         }),
       });
       await fetchUsers();
-      setSession(result.user);
       renderAuthNav();
       return result;
     } catch (error) {
@@ -205,9 +203,11 @@
 
   function renderAuthNav() {
     const nav = document.querySelector("[data-auth-nav]");
+    const navLinks = document.querySelector(".nav-links");
     renderProtectedNavLinks();
     if (!nav) return;
     const user = getCurrentUser();
+    document.querySelectorAll("[data-admin-nav]").forEach((link) => link.remove());
     if (!user) {
       nav.innerHTML = `
         <a href="login.html">Login</a>
@@ -216,8 +216,14 @@
       return;
     }
     const hasAdminLink = Boolean(document.querySelector('.nav-links a[href="admin.html"]'));
+    if (user.role === "admin" && !hasAdminLink && navLinks) {
+      const adminLink = document.createElement("a");
+      adminLink.href = "admin.html";
+      adminLink.dataset.adminNav = "true";
+      adminLink.textContent = "Admin";
+      navLinks.insertBefore(adminLink, nav);
+    }
     nav.innerHTML = `
-      ${user.role === "admin" && !hasAdminLink ? '<a href="admin.html">Admin</a>' : ""}
       <span class="nav-user">${escapeHtml(user.displayName)}</span>
       <button class="nav-button" type="button" data-logout>Logout</button>
     `;

@@ -164,7 +164,7 @@ async function savePredictionFromForm(event) {
     username: user.username || user.email,
     displayName: user.displayName,
     predictedWinner: form.elements.predictedWinner.value,
-    advancingTeam: "",
+    advancingTeam: form.elements.advancingTeam.value,
     homeScore,
     awayScore,
     penaltyHomeScore,
@@ -174,6 +174,10 @@ async function savePredictionFromForm(event) {
 
   if (!prediction.predictedWinner) {
     errorEl.textContent = "Enter a predicted winner.";
+    return;
+  }
+  if (!prediction.advancingTeam) {
+    errorEl.textContent = "Enter the advancing team.";
     return;
   }
 
@@ -208,6 +212,7 @@ function editPrediction(index) {
   form.elements.userId.value = prediction.userId || "";
   form.elements.matchId.value = prediction.matchId || "";
   form.elements.predictedWinner.value = prediction.predictedWinner || "";
+  form.elements.advancingTeam.value = prediction.advancingTeam || "";
   form.elements.homeScore.value = prediction.homeScore ?? "";
   form.elements.awayScore.value = prediction.awayScore ?? "";
   form.elements.penaltyHomeScore.value = prediction.penaltyHomeScore ?? "";
@@ -242,6 +247,7 @@ function renderPredictionTable() {
             <th>User</th>
             <th>Match</th>
             <th>Winner</th>
+            <th>Advancing</th>
             <th>Score</th>
             <th>Points</th>
             <th>Actions</th>
@@ -255,6 +261,7 @@ function renderPredictionTable() {
                 <td>${WCApp.escapeHtml(prediction.displayName || prediction.username || prediction.userEmail || "Unknown")}</td>
                 <td>${WCApp.escapeHtml(matchLabel)}</td>
                 <td>${WCApp.escapeHtml(prediction.predictedWinner)}</td>
+                <td>${WCApp.escapeHtml(prediction.advancingTeam || "TBD")}</td>
                 <td>${WCApp.escapeHtml(WCApp.predictionScoreText(prediction))}</td>
                 <td><strong>${prediction.points}</strong></td>
                 <td class="table-actions">
