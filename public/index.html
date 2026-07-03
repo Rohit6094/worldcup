@@ -31,10 +31,10 @@
           <div class="hero-copy">
             <p class="eyebrow">Points-based prediction game</p>
             <h1>Predict the World Cup. Climb the Leaderboard.</h1>
-            <p>Pick knockout match winners and exact scores for FIFA World Cup 2026 games. Earn leaderboard points for accurate predictions.</p>
+            <p>Pick knockout match winners and exact scores for FIFA World Cup 2026 games. Correct winner predictions earn +1 point, and correct winner with exact regular score earns +3 total points.</p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="matches.html">View Matches</a>
-              <a class="btn btn-secondary" href="leaderboard.html">Leaderboard</a>
+              <a class="btn btn-secondary" href="points.html">Predictions</a>
             </div>
             <div class="auth-callout" data-auth-callout hidden>
               <strong>Login/Sign Up to predict and see the leaderboard</strong>
@@ -45,16 +45,16 @@
               </div>
             </div>
           </div>
-          <aside class="hero-stats" aria-label="Game summary">
-            <div class="stat-card">
-              <span>Correct winner</span>
-              <strong>+1</strong>
-              <span>points</span>
-            </div>
-            <div class="stat-card">
-              <span>Exact score</span>
-              <strong>+3</strong>
-              <span>points</span>
+          <aside class="hero-stats" aria-label="Leaderboard preview">
+            <div class="stat-card hero-leaderboard-card">
+              <div class="hero-card-heading">
+                <span>Leaderboard</span>
+                <strong>Top 3</strong>
+              </div>
+              <div class="hero-leaderboard-list" data-hero-leaderboard>
+                <div class="mini-loading">Loading rankings...</div>
+              </div>
+              <a class="btn btn-small btn-primary" href="leaderboard.html">View Leaderboard</a>
             </div>
           </aside>
         </div>

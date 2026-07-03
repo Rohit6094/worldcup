@@ -3,13 +3,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const previousEl = document.querySelector("[data-previous-games]");
   const upcomingEl = document.querySelector("[data-upcoming-games]");
   const featuredEl = document.querySelector("[data-featured-matches]");
+  const heroLeaderboardEl = document.querySelector("[data-hero-leaderboard]");
   const refreshButton = document.querySelector("[data-refresh-matches]");
 
   setLoading(previousEl);
   setLoading(upcomingEl);
   setLoading(featuredEl);
+  setHeroLeaderboardLoading(heroLeaderboardEl);
 
-  await loadDashboardMatches(state);
+  await Promise.all([
+    loadDashboardMatches(state),
+    loadHeroLeaderboard(heroLeaderboardEl),
+  ]);
 
   document.addEventListener("wc:matches-updated", (event) => {
     if (!Array.isArray(event.detail?.matches)) return;
@@ -64,6 +69,41 @@ async function loadDashboardMatches(state, refresh = false) {
     renderError(upcomingEl, "Upcoming games could not be loaded.");
     renderError(featuredEl, "Prediction cards could not be loaded.");
   }
+}
+
+async function loadHeroLeaderboard(container) {
+  if (!container) return;
+  try {
+    const payload = await WCApp.fetchLeaderboard();
+    renderHeroLeaderboard(container, (payload.overall || payload.top10 || []).slice(0, 3));
+  } catch (error) {
+    container.innerHTML = `<div class="mini-empty">Leaderboard is unavailable.</div>`;
+  }
+}
+
+function setHeroLeaderboardLoading(container) {
+  if (container) container.innerHTML = `<div class="mini-loading">Loading rankings...</div>`;
+}
+
+function renderHeroLeaderboard(container, rows) {
+  if (!container) return;
+  if (!rows.length) {
+    container.innerHTML = `<div class="mini-empty">Rankings appear after predictions are scored.</div>`;
+    return;
+  }
+
+  container.innerHTML = rows
+    .map((row) => `
+      <div class="hero-leader-row">
+        <span class="rank-chip">#${WCApp.escapeHtml(row.rank || "")}</span>
+        <div>
+          <strong>${WCApp.escapeHtml(row.displayName || "Player")}</strong>
+          <span>${WCApp.escapeHtml(row.totalPredictions || 0)} predictions</span>
+        </div>
+        <b>${WCApp.escapeHtml(row.points || 0)}</b>
+      </div>
+    `)
+    .join("");
 }
 
 function renderAuthCallout() {

@@ -1025,6 +1025,84 @@ main {
   color: var(--muted);
 }
 
+.hero-leaderboard-card {
+  min-height: 100%;
+  gap: 16px;
+}
+
+.hero-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-card-heading span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.hero-card-heading strong {
+  color: var(--text);
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.hero-leaderboard-list {
+  display: grid;
+  gap: 10px;
+}
+
+.hero-leader-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(212, 212, 216, 0.82);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 244, 245, 0.78)),
+    var(--surface-soft);
+  padding: 10px;
+}
+
+.hero-leader-row strong,
+.hero-leader-row span {
+  display: block;
+}
+
+.hero-leader-row strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-leader-row div span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.hero-leader-row b {
+  min-width: 38px;
+  border-radius: 999px;
+  background: #27272a;
+  color: #ffffff;
+  font-size: 0.92rem;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.mini-loading,
+.mini-empty {
+  border: 1px dashed #c8c8cf;
+  border-radius: var(--radius);
+  color: var(--muted);
+  padding: 16px;
+  text-align: center;
+}
+
 .points-positive,
 .points-muted {
   display: inline-flex;
@@ -1464,6 +1542,14 @@ main {
 
 .stat-card strong {
   font-size: 1.75rem;
+}
+
+.hero-card-heading strong {
+  font-size: 1.45rem;
+}
+
+.hero-leaderboard-card {
+  min-height: 230px;
 }
 
 .dashboard-summary-section {
@@ -2109,12 +2195,16 @@ main {
   }
 
   .hero-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .stat-card {
     min-height: 94px;
     padding: 14px;
+  }
+
+  .hero-leaderboard-card {
+    min-height: auto;
   }
 
   .auth-page {
