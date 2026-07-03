@@ -31,10 +31,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-predict-match]");
-    if (!button) return;
-    const match = state.matches.find((item) => item.id === button.dataset.predictMatch);
-    if (match) WCApp.openPredictionModal(match, () => renderMatchesPage(container, state));
+    const predictButton = event.target.closest("[data-predict-match]");
+    if (predictButton) {
+      const match = state.matches.find((item) => item.id === predictButton.dataset.predictMatch);
+      if (match) WCApp.openPredictionModal(match, () => renderMatchesPage(container, state));
+      return;
+    }
+
+    const detailsButton = event.target.closest("[data-match-details]");
+    if (detailsButton) {
+      const match = state.matches.find((item) => item.id === detailsButton.dataset.matchDetails);
+      if (match) openMatchDetailsModal(match);
+    }
   });
 });
 
@@ -125,14 +133,12 @@ function renderMatchCard(match) {
         <span>${WCApp.formatFullDateTime(match.date)}</span>
         <span>${WCApp.escapeHtml(match.venue || "Venue TBD")}${match.city ? `, ${WCApp.escapeHtml(match.city)}` : ""}</span>
       </div>
-      <dl class="match-details">
-        <div><dt>Prediction</dt><dd>${prediction ? `${WCApp.escapeHtml(prediction.predictedWinner)} (${prediction.homeScore}-${prediction.awayScore})` : "Not submitted"}</dd></div>
-      </dl>
-      <div class="goal-list inline">${renderGoals(match)}</div>
       <div class="card-actions">
+        <button class="btn btn-small btn-ghost" type="button" data-match-details="${match.id}">Details</button>
+        <span class="prediction-status">${prediction ? "Prediction saved" : "No prediction yet"}</span>
         ${
           match.status === "upcoming"
-            ? `<button class="btn btn-primary" type="button" data-predict-match="${match.id}">Predict</button>`
+            ? `<button class="btn btn-small btn-primary" type="button" data-predict-match="${match.id}">Predict</button>`
             : `<span class="result-badge">Result: ${WCApp.escapeHtml(match.winner || "Pending")}</span>`
         }
       </div>
@@ -140,10 +146,73 @@ function renderMatchCard(match) {
   `;
 }
 
+function ensureMatchDetailsModal() {
+  let modal = document.querySelector("[data-match-details-modal]");
+  if (modal) return modal;
+
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = `
+    <div class="modal-backdrop" data-match-details-modal hidden>
+      <div class="modal match-detail-modal" role="dialog" aria-modal="true" aria-labelledby="match-detail-title">
+        <button class="modal-close" type="button" data-close-match-details aria-label="Close match details">&times;</button>
+        <div data-match-details-content></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(wrapper.firstElementChild);
+  modal = document.querySelector("[data-match-details-modal]");
+
+  modal.addEventListener("click", (event) => {
+    if (event.target.matches("[data-match-details-modal], [data-close-match-details]")) {
+      closeMatchDetailsModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) closeMatchDetailsModal();
+  });
+  return modal;
+}
+
+function openMatchDetailsModal(match) {
+  const modal = ensureMatchDetailsModal();
+  const prediction = WCApp.getPredictionForMatch(match.id);
+  modal.querySelector("[data-match-details-content]").innerHTML = `
+    <div class="modal-header">
+      <p class="eyebrow">${WCApp.escapeHtml(match.stage || "Knockout match")}</p>
+      <h2 id="match-detail-title">Match Details</h2>
+    </div>
+    <div class="modal-teams">
+      ${WCApp.teamMarkup(match.homeTeam)}
+      <span class="versus">${match.status === "completed" || match.status === "live" ? WCApp.scoreText(match) : "vs"}</span>
+      ${WCApp.teamMarkup(match.awayTeam)}
+    </div>
+    <dl class="match-details detail-modal-list">
+      <div><dt>Status</dt><dd>${WCApp.escapeHtml(match.status || "upcoming")}</dd></div>
+      <div><dt>Kickoff</dt><dd>${WCApp.escapeHtml(WCApp.formatFullDateTime(match.date))}</dd></div>
+      <div><dt>Venue</dt><dd>${WCApp.escapeHtml(match.venue || "Venue TBD")}${match.city ? `, ${WCApp.escapeHtml(match.city)}` : ""}</dd></div>
+      <div><dt>Winner</dt><dd>${WCApp.escapeHtml(match.winner || "TBD")}</dd></div>
+      <div><dt>Your prediction</dt><dd>${prediction ? `${WCApp.escapeHtml(prediction.predictedWinner)} (${prediction.homeScore}-${prediction.awayScore})` : "Not submitted"}</dd></div>
+    </dl>
+    <div class="goal-list detail-goals">
+      <p class="label">Goal scorers</p>
+      ${renderGoals(match)}
+    </div>
+  `;
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  modal.querySelector("[data-close-match-details]").focus();
+}
+
+function closeMatchDetailsModal() {
+  const modal = document.querySelector("[data-match-details-modal]");
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
 function renderGoals(match) {
   if (!match.goals || !match.goals.length) return `<p class="muted">Goal scorers unavailable.</p>`;
   return `
-    <p class="label">Goal scorers</p>
     <ul>
       ${match.goals
         .map((goal) => `<li>${goal.minute ? `${goal.minute}' ` : ""}${WCApp.escapeHtml(goal.player)} (${WCApp.escapeHtml(goal.team)})</li>`)
