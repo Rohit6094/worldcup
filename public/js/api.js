@@ -329,7 +329,8 @@
       ...options,
     });
     if (!response.ok) {
-      throw new Error(`Request failed with ${response.status}`);
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || `Request failed with ${response.status}`);
     }
     return response.json();
   }
@@ -399,8 +400,8 @@
         body: JSON.stringify(prediction),
       });
     } catch (error) {
-      console.warn("Prediction saved locally only", error);
-      return { success: true, prediction, localOnly: true };
+      console.warn("Prediction could not be saved", error);
+      return { success: false, error: error.message || "Prediction could not be saved." };
     }
   }
 
@@ -633,8 +634,8 @@
               Predicted winner
               <select name="predictedWinner" required></select>
             </label>
-            <label data-advancing-wrap>
-              Advancing team
+            <label data-advancing-wrap hidden>
+              Advancing team after penalties
               <select name="advancingTeam"></select>
             </label>
             <div class="score-inputs">
@@ -736,12 +737,8 @@
         errorEl.textContent = "A draw / penalties prediction should use a tied score.";
         return;
       }
-      if (!form.elements.advancingTeam.value) {
-        errorEl.textContent = "Select the team advancing to the next round.";
-        return;
-      }
-      if (form.elements.predictedWinner.value !== "Draw / Penalties" && form.elements.advancingTeam.value !== form.elements.predictedWinner.value) {
-        errorEl.textContent = "Advancing team must match the predicted winner unless you choose Draw / Penalties.";
+      if (form.elements.predictedWinner.value === "Draw / Penalties" && !form.elements.advancingTeam.value) {
+        errorEl.textContent = "Select the team advancing after penalties.";
         return;
       }
       const prediction = {
@@ -751,7 +748,7 @@
         username: currentUser.username || currentUser.email,
         displayName: currentUser.displayName,
         predictedWinner: form.elements.predictedWinner.value,
-        advancingTeam: form.elements.advancingTeam.value,
+        advancingTeam: form.elements.predictedWinner.value === "Draw / Penalties" ? form.elements.advancingTeam.value : form.elements.predictedWinner.value,
         homeScore,
         awayScore,
         submittedAt: new Date().toISOString(),
@@ -789,8 +786,10 @@
 
   function updateAdvancingVisibility(form) {
     const wrap = form.querySelector("[data-advancing-wrap]");
-    wrap.hidden = false;
-    form.elements.advancingTeam.required = true;
+    const needsAdvancingTeam = form.elements.predictedWinner.value === "Draw / Penalties";
+    wrap.hidden = !needsAdvancingTeam;
+    form.elements.advancingTeam.required = needsAdvancingTeam;
+    if (!needsAdvancingTeam) form.elements.advancingTeam.value = "";
   }
 
   function scoreText(match) {

@@ -191,6 +191,19 @@ KNOCKOUT_ORDER = {
 }
 MAX_EVENT_LOOKUPS = 8
 
+# football-data.org can lag on filling teams in later knockout fixtures.
+# These pairs map Round of 16 fixtures to their Round of 32 feeder match ids.
+ROUND_OF_16_FEEDERS = {
+    "537376": ("537417", "537418"),
+    "537375": ("537415", "537416"),
+    "537377": ("537423", "537424"),
+    "537378": ("537425", "537426"),
+    "537379": ("537428", "537430"),
+    "537380": ("537421", "537422"),
+    "537381": ("537420", "537419"),
+    "537382": ("537429", "537427"),
+}
+
 
 def read_mock_matches():
     with MOCK_MATCHES_PATH.open("r", encoding="utf-8") as file:
@@ -427,6 +440,37 @@ def sorted_matches(matches):
     return sorted(matches, key=lambda match: (KNOCKOUT_ORDER.get(match["stage"], 99), match.get("date") or ""))
 
 
+def team_is_tbd(team):
+    return not team or (team.get("name") or "TBD") == "TBD"
+
+
+def winner_team_from_match(match):
+    if not match or match.get("status") != "completed" or not match.get("winner"):
+        return None
+    winner_name = match.get("winner")
+    for side in ("homeTeam", "awayTeam"):
+        team = match.get(side) or {}
+        if team.get("name") == winner_name:
+            return team
+    return flag_for_team(winner_name)
+
+
+def resolve_round_of_16_placeholders(matches):
+    by_id = {str(match.get("id")): match for match in matches}
+    for round16_id, feeder_ids in ROUND_OF_16_FEEDERS.items():
+        match = by_id.get(round16_id)
+        if not match:
+            continue
+
+        home_winner = winner_team_from_match(by_id.get(feeder_ids[0]))
+        away_winner = winner_team_from_match(by_id.get(feeder_ids[1]))
+        if home_winner and team_is_tbd(match.get("homeTeam")):
+            match["homeTeam"] = home_winner
+        if away_winner and team_is_tbd(match.get("awayTeam")):
+            match["awayTeam"] = away_winner
+    return matches
+
+
 def fetch_football_data_matches(api_key):
     try:
         payload = request_football_data(
@@ -441,7 +485,7 @@ def fetch_football_data_matches(api_key):
     if not fixtures:
         raise RuntimeError("football-data.org returned no matches for competition=WC season=2026")
 
-    normalized = [normalize_football_data_match(item) for item in fixtures]
+    normalized = resolve_round_of_16_placeholders([normalize_football_data_match(item) for item in fixtures])
     knockout_matches = [match for match in normalized if match["stage"] in KNOCKOUT_STAGES]
     selected_matches = knockout_matches or normalized
 

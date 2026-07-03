@@ -153,7 +153,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             "username": str(payload.get("username", "")).strip(),
             "displayName": str(payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
-            "advancingTeam": str(payload.get("advancingTeam", "")).strip(),
+            "advancingTeam": str(payload.get("advancingTeam") or payload["predictedWinner"]).strip(),
             "homeScore": payload["homeScore"],
             "awayScore": payload["awayScore"],
             "submittedAt": datetime.now(timezone.utc).isoformat(),

@@ -145,6 +145,9 @@ button {
 }
 
 .nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
 }
@@ -1683,21 +1686,41 @@ main {
 
   .nav-links {
     width: 100%;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow-x: visible;
-    padding-bottom: 2px;
+    gap: 8px;
+    padding-bottom: 0;
   }
 
   .nav-links a,
   .nav-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 38px;
     white-space: nowrap;
     padding: 8px 10px;
     font-size: 0.92rem;
   }
 
   .auth-nav {
+    grid-column: 1 / -1;
+    width: 100%;
     flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: 0;
+    border-top: 1px solid rgba(212, 212, 216, 0.8);
+    padding-top: 8px;
+  }
+
+  .auth-nav a {
+    flex: 1 1 0;
+  }
+
+  .auth-nav .nav-user {
+    margin-left: auto;
   }
 
   .nav-user {
@@ -1851,5 +1874,20 @@ main {
 
   .score-inputs {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .nav-links {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-nav {
+    justify-content: stretch;
+  }
+
+  .auth-nav .nav-user,
+  .auth-nav .nav-button {
+    flex: 1 1 100%;
   }
 }

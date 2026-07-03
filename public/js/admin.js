@@ -166,9 +166,12 @@ async function savePredictionFromForm(event) {
     errorEl.textContent = "Enter a predicted winner.";
     return;
   }
-  if (!prediction.advancingTeam) {
-    errorEl.textContent = "Enter the advancing team.";
+  if (prediction.predictedWinner === "Draw / Penalties" && !prediction.advancingTeam) {
+    errorEl.textContent = "Enter the advancing team for penalty predictions.";
     return;
+  }
+  if (prediction.predictedWinner !== "Draw / Penalties" && !prediction.advancingTeam) {
+    prediction.advancingTeam = prediction.predictedWinner;
   }
 
   const result = await WCApp.submitPrediction(prediction);

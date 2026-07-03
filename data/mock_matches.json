@@ -4,8 +4,8 @@
     "stage": "Round of 32",
     "homeTeam": {
       "name": "South Africa",
-      "code": "",
-      "flag": ""
+      "code": "za",
+      "flag": "https://flagcdn.com/w40/za.png"
     },
     "awayTeam": {
       "name": "Canada",
@@ -57,8 +57,8 @@
     },
     "awayTeam": {
       "name": "Paraguay",
-      "code": "",
-      "flag": ""
+      "code": "py",
+      "flag": "https://flagcdn.com/w40/py.png"
     },
     "date": "2026-06-29T20:30:00Z",
     "venue": "",
@@ -100,13 +100,13 @@
     "stage": "Round of 32",
     "homeTeam": {
       "name": "Ivory Coast",
-      "code": "",
-      "flag": ""
+      "code": "ci",
+      "flag": "https://flagcdn.com/w40/ci.png"
     },
     "awayTeam": {
       "name": "Norway",
-      "code": "",
-      "flag": ""
+      "code": "no",
+      "flag": "https://flagcdn.com/w40/no.png"
     },
     "date": "2026-06-30T17:00:00Z",
     "venue": "",
@@ -129,8 +129,8 @@
     },
     "awayTeam": {
       "name": "Sweden",
-      "code": "",
-      "flag": ""
+      "code": "se",
+      "flag": "https://flagcdn.com/w40/se.png"
     },
     "date": "2026-06-30T21:00:00Z",
     "venue": "",
@@ -177,8 +177,8 @@
     },
     "awayTeam": {
       "name": "Congo DR",
-      "code": "",
-      "flag": ""
+      "code": "cd",
+      "flag": "https://flagcdn.com/w40/cd.png"
     },
     "date": "2026-07-01T16:00:00Z",
     "venue": "",
@@ -225,8 +225,8 @@
     },
     "awayTeam": {
       "name": "Bosnia-Herzegovina",
-      "code": "",
-      "flag": ""
+      "code": "ba",
+      "flag": "https://flagcdn.com/w40/ba.png"
     },
     "date": "2026-07-02T00:00:00Z",
     "venue": "",
@@ -249,18 +249,18 @@
     },
     "awayTeam": {
       "name": "Austria",
-      "code": "",
-      "flag": ""
+      "code": "at",
+      "flag": "https://flagcdn.com/w40/at.png"
     },
     "date": "2026-07-02T19:00:00Z",
     "venue": "",
     "city": "",
-    "status": "upcoming",
+    "status": "completed",
     "score": {
-      "home": null,
-      "away": null
+      "home": 3,
+      "away": 0
     },
-    "winner": null,
+    "winner": "Spain",
     "goals": []
   },
   {
@@ -279,12 +279,12 @@
     "date": "2026-07-02T23:00:00Z",
     "venue": "",
     "city": "",
-    "status": "upcoming",
+    "status": "completed",
     "score": {
-      "home": null,
-      "away": null
+      "home": 2,
+      "away": 1
     },
-    "winner": null,
+    "winner": "Portugal",
     "goals": []
   },
   {
@@ -297,18 +297,18 @@
     },
     "awayTeam": {
       "name": "Algeria",
-      "code": "",
-      "flag": ""
+      "code": "dz",
+      "flag": "https://flagcdn.com/w40/dz.png"
     },
     "date": "2026-07-03T03:00:00Z",
     "venue": "",
     "city": "",
-    "status": "upcoming",
+    "status": "completed",
     "score": {
-      "home": null,
-      "away": null
+      "home": 2,
+      "away": 0
     },
-    "winner": null,
+    "winner": "Switzerland",
     "goals": []
   },
   {
@@ -321,8 +321,8 @@
     },
     "awayTeam": {
       "name": "Egypt",
-      "code": "",
-      "flag": ""
+      "code": "eg",
+      "flag": "https://flagcdn.com/w40/eg.png"
     },
     "date": "2026-07-03T18:00:00Z",
     "venue": "",
@@ -345,8 +345,8 @@
     },
     "awayTeam": {
       "name": "Cape Verde Islands",
-      "code": "",
-      "flag": ""
+      "code": "cv",
+      "flag": "https://flagcdn.com/w40/cv.png"
     },
     "date": "2026-07-03T22:00:00Z",
     "venue": "",
@@ -412,8 +412,8 @@
     "stage": "Round of 16",
     "homeTeam": {
       "name": "Paraguay",
-      "code": "",
-      "flag": ""
+      "code": "py",
+      "flag": "https://flagcdn.com/w40/py.png"
     },
     "awayTeam": {
       "name": "France",
@@ -441,8 +441,8 @@
     },
     "awayTeam": {
       "name": "Norway",
-      "code": "",
-      "flag": ""
+      "code": "no",
+      "flag": "https://flagcdn.com/w40/no.png"
     },
     "date": "2026-07-05T20:00:00Z",
     "venue": "",
@@ -531,14 +531,14 @@
     "id": "537381",
     "stage": "Round of 16",
     "homeTeam": {
-      "name": "TBD",
-      "code": "",
-      "flag": ""
+      "name": "Spain",
+      "code": "es",
+      "flag": "https://flagcdn.com/w40/es.png"
     },
     "awayTeam": {
-      "name": "TBD",
-      "code": "",
-      "flag": ""
+      "name": "Portugal",
+      "code": "pt",
+      "flag": "https://flagcdn.com/w40/pt.png"
     },
     "date": "2026-07-07T16:00:00Z",
     "venue": "",
@@ -555,9 +555,9 @@
     "id": "537382",
     "stage": "Round of 16",
     "homeTeam": {
-      "name": "TBD",
-      "code": "",
-      "flag": ""
+      "name": "Switzerland",
+      "code": "ch",
+      "flag": "https://flagcdn.com/w40/ch.png"
     },
     "awayTeam": {
       "name": "TBD",
