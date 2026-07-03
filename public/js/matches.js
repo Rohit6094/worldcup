@@ -4,13 +4,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const stageFilter = document.querySelector("[data-stage-filter]");
   const statusFilter = document.querySelector("[data-status-filter]");
   const searchInput = document.querySelector("[data-team-search]");
+  const refreshButton = document.querySelector("[data-refresh-matches]");
 
   container.innerHTML = `<div class="loading-card">Loading matches...</div>`;
 
-  state.matches = await WCApp.fetchMatches();
-  renderDataNotice();
-  populateStageFilter(stageFilter, state.matches);
-  renderMatchesPage(container, state);
+  await loadMatchesPageData(state, container, stageFilter);
 
   stageFilter.addEventListener("change", () => {
     state.stage = stageFilter.value;
@@ -24,6 +22,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     state.search = searchInput.value.trim().toLowerCase();
     renderMatchesPage(container, state);
   });
+  refreshButton?.addEventListener("click", async () => {
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Refreshing...";
+    await loadMatchesPageData(state, container, stageFilter, true);
+    refreshButton.disabled = false;
+    refreshButton.textContent = "Refresh Live Data";
+  });
 
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-predict-match]");
@@ -33,12 +38,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-function renderDataNotice() {
+async function loadMatchesPageData(state, container, stageFilter, refresh = false) {
+  container.innerHTML = `<div class="loading-card">${refresh ? "Refreshing live data..." : "Loading matches..."}</div>`;
+  state.matches = await WCApp.fetchMatches({ refresh });
+  renderDataNotice(refresh);
+  populateStageFilter(stageFilter, state.matches);
+  stageFilter.value = state.stage;
+  renderMatchesPage(container, state);
+  if (refresh) WCApp.showToast("Live match data refreshed.");
+}
+
+function renderDataNotice(wasRefreshed = false) {
   const notice = document.querySelector("[data-data-notice]");
   if (!notice) return;
   const meta = WCApp.getMatchesMeta();
   if (["football-data.org", "api-football"].includes(meta.source)) {
-    notice.hidden = true;
+    notice.hidden = !wasRefreshed;
+    notice.textContent = wasRefreshed
+      ? `Showing latest ${meta.source} data. ${meta.knockoutFixtures || 0} knockout fixtures loaded.`
+      : "";
     return;
   }
   notice.hidden = false;

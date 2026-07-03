@@ -282,6 +282,7 @@
   async function requestJson(url, options = {}) {
     const response = await fetch(url, {
       headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      cache: options.cache || "no-store",
       ...options,
     });
     if (!response.ok) {
@@ -300,9 +301,10 @@
     }
   }
 
-  async function fetchMatches() {
+  async function fetchMatches(options = {}) {
     try {
-      const payload = await requestJson("/api/matches");
+      const refreshQuery = options.refresh ? `?refresh=1&t=${Date.now()}` : "";
+      const payload = await requestJson(`/api/matches${refreshQuery}`, { cache: "no-store" });
       if (Array.isArray(payload)) {
         lastMatchesMeta = { source: "api" };
         return payload;
@@ -312,6 +314,7 @@
         fallbackReason: payload.fallbackReason || "",
         totalFixtures: payload.totalFixtures,
         knockoutFixtures: payload.knockoutFixtures,
+        cacheStatus: payload.cacheStatus || "",
       };
       return payload.matches || fallbackMatches;
     } catch (error) {

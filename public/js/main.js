@@ -3,21 +3,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const previousEl = document.querySelector("[data-previous-games]");
   const upcomingEl = document.querySelector("[data-upcoming-games]");
   const featuredEl = document.querySelector("[data-featured-matches]");
+  const refreshButton = document.querySelector("[data-refresh-matches]");
 
   setLoading(previousEl);
   setLoading(upcomingEl);
   setLoading(featuredEl);
 
-  try {
-    state.matches = await WCApp.fetchMatches();
-    renderAuthCallout();
-    renderDataNotice();
-    renderDashboard(state.matches);
-  } catch (error) {
-    renderError(previousEl, "Matches could not be loaded.");
-    renderError(upcomingEl, "Upcoming games could not be loaded.");
-    renderError(featuredEl, "Prediction cards could not be loaded.");
-  }
+  await loadDashboardMatches(state);
+
+  refreshButton?.addEventListener("click", async () => {
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Refreshing...";
+    await loadDashboardMatches(state, true);
+    refreshButton.disabled = false;
+    refreshButton.textContent = "Refresh Live Data";
+  });
 
   document.addEventListener("click", (event) => {
     const predictButton = event.target.closest("[data-predict-match]");
@@ -36,6 +36,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
+async function loadDashboardMatches(state, refresh = false) {
+  const previousEl = document.querySelector("[data-previous-games]");
+  const upcomingEl = document.querySelector("[data-upcoming-games]");
+  const featuredEl = document.querySelector("[data-featured-matches]");
+
+  setLoading(previousEl);
+  setLoading(upcomingEl);
+  setLoading(featuredEl);
+
+  try {
+    state.matches = await WCApp.fetchMatches({ refresh });
+    renderAuthCallout();
+    renderDataNotice(refresh);
+    renderDashboard(state.matches);
+    if (refresh) WCApp.showToast("Live match data refreshed.");
+  } catch (error) {
+    renderError(previousEl, "Matches could not be loaded.");
+    renderError(upcomingEl, "Upcoming games could not be loaded.");
+    renderError(featuredEl, "Prediction cards could not be loaded.");
+  }
+}
 
 function renderAuthCallout() {
   const callout = document.querySelector("[data-auth-callout]");
@@ -59,12 +81,15 @@ function renderDashboard(matches) {
   renderFeaturedMatches(document.querySelector("[data-featured-matches]"), featured);
 }
 
-function renderDataNotice() {
+function renderDataNotice(wasRefreshed = false) {
   const notice = document.querySelector("[data-data-notice]");
   if (!notice) return;
   const meta = WCApp.getMatchesMeta();
   if (["football-data.org", "api-football"].includes(meta.source)) {
-    notice.hidden = true;
+    notice.hidden = !wasRefreshed;
+    notice.textContent = wasRefreshed
+      ? `Showing latest ${meta.source} data. ${meta.knockoutFixtures || 0} knockout fixtures loaded.`
+      : "";
     return;
   }
   notice.hidden = false;

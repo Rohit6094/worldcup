@@ -142,11 +142,19 @@ The Apps Script template is in `docs/google-sheets-apps-script.js`. Paste it int
 Runtime behavior:
 
 - `/api/matches` caches football-data.org results for `MATCH_CACHE_TTL_SECONDS`.
+- `/api/matches?refresh=1` bypasses the app match cache and fetches fresh provider data immediately.
 - If Vercel KV is configured, match data is also cached across serverless invocations.
 - If a provider request fails, the API can serve the last known good KV match snapshot.
 - `/api/submit_prediction` stores predictions in Vercel KV when configured.
 - `/api/predictions` reads stored Vercel KV predictions for the admin page.
 - Google Sheets receives an append-only copy of predictions when configured.
+
+Force a live match refresh:
+
+```text
+Local:  http://127.0.0.1:8000/api/matches?refresh=1
+Vercel: https://your-domain.vercel.app/api/matches?refresh=1
+```
 
 ## Demo Accounts
 
