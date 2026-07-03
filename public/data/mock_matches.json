@@ -1,0 +1,770 @@
+[
+  {
+    "id": "537417",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "South Africa",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "Canada",
+      "code": "ca",
+      "flag": "https://flagcdn.com/w40/ca.png"
+    },
+    "date": "2026-06-28T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 0,
+      "away": 1
+    },
+    "winner": "Canada",
+    "goals": []
+  },
+  {
+    "id": "537423",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Brazil",
+      "code": "br",
+      "flag": "https://flagcdn.com/w40/br.png"
+    },
+    "awayTeam": {
+      "name": "Japan",
+      "code": "jp",
+      "flag": "https://flagcdn.com/w40/jp.png"
+    },
+    "date": "2026-06-29T17:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 2,
+      "away": 1
+    },
+    "winner": "Brazil",
+    "goals": []
+  },
+  {
+    "id": "537415",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Germany",
+      "code": "de",
+      "flag": "https://flagcdn.com/w40/de.png"
+    },
+    "awayTeam": {
+      "name": "Paraguay",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-06-29T20:30:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 4,
+      "away": 5
+    },
+    "winner": "Paraguay",
+    "goals": []
+  },
+  {
+    "id": "537418",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Netherlands",
+      "code": "nl",
+      "flag": "https://flagcdn.com/w40/nl.png"
+    },
+    "awayTeam": {
+      "name": "Morocco",
+      "code": "ma",
+      "flag": "https://flagcdn.com/w40/ma.png"
+    },
+    "date": "2026-06-30T01:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 3,
+      "away": 4
+    },
+    "winner": "Morocco",
+    "goals": []
+  },
+  {
+    "id": "537424",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Ivory Coast",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "Norway",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-06-30T17:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 1,
+      "away": 2
+    },
+    "winner": "Norway",
+    "goals": []
+  },
+  {
+    "id": "537416",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "France",
+      "code": "fr",
+      "flag": "https://flagcdn.com/w40/fr.png"
+    },
+    "awayTeam": {
+      "name": "Sweden",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-06-30T21:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 3,
+      "away": 0
+    },
+    "winner": "France",
+    "goals": []
+  },
+  {
+    "id": "537425",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Mexico",
+      "code": "mx",
+      "flag": "https://flagcdn.com/w40/mx.png"
+    },
+    "awayTeam": {
+      "name": "Ecuador",
+      "code": "ec",
+      "flag": "https://flagcdn.com/w40/ec.png"
+    },
+    "date": "2026-07-01T02:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 2,
+      "away": 0
+    },
+    "winner": "Mexico",
+    "goals": []
+  },
+  {
+    "id": "537426",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "England",
+      "code": "gb-eng",
+      "flag": "https://flagcdn.com/w40/gb-eng.png"
+    },
+    "awayTeam": {
+      "name": "Congo DR",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-01T16:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 2,
+      "away": 1
+    },
+    "winner": "England",
+    "goals": []
+  },
+  {
+    "id": "537422",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Belgium",
+      "code": "be",
+      "flag": "https://flagcdn.com/w40/be.png"
+    },
+    "awayTeam": {
+      "name": "Senegal",
+      "code": "sn",
+      "flag": "https://flagcdn.com/w40/sn.png"
+    },
+    "date": "2026-07-01T20:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 3,
+      "away": 2
+    },
+    "winner": "Belgium",
+    "goals": []
+  },
+  {
+    "id": "537421",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "United States",
+      "code": "us",
+      "flag": "https://flagcdn.com/w40/us.png"
+    },
+    "awayTeam": {
+      "name": "Bosnia-Herzegovina",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-02T00:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "completed",
+    "score": {
+      "home": 2,
+      "away": 0
+    },
+    "winner": "United States",
+    "goals": []
+  },
+  {
+    "id": "537420",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Spain",
+      "code": "es",
+      "flag": "https://flagcdn.com/w40/es.png"
+    },
+    "awayTeam": {
+      "name": "Austria",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-02T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537419",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Portugal",
+      "code": "pt",
+      "flag": "https://flagcdn.com/w40/pt.png"
+    },
+    "awayTeam": {
+      "name": "Croatia",
+      "code": "hr",
+      "flag": "https://flagcdn.com/w40/hr.png"
+    },
+    "date": "2026-07-02T23:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537429",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Switzerland",
+      "code": "ch",
+      "flag": "https://flagcdn.com/w40/ch.png"
+    },
+    "awayTeam": {
+      "name": "Algeria",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-03T03:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537428",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Australia",
+      "code": "au",
+      "flag": "https://flagcdn.com/w40/au.png"
+    },
+    "awayTeam": {
+      "name": "Egypt",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-03T18:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537427",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Argentina",
+      "code": "ar",
+      "flag": "https://flagcdn.com/w40/ar.png"
+    },
+    "awayTeam": {
+      "name": "Cape Verde Islands",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-03T22:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537430",
+    "stage": "Round of 32",
+    "homeTeam": {
+      "name": "Colombia",
+      "code": "co",
+      "flag": "https://flagcdn.com/w40/co.png"
+    },
+    "awayTeam": {
+      "name": "Ghana",
+      "code": "gh",
+      "flag": "https://flagcdn.com/w40/gh.png"
+    },
+    "date": "2026-07-04T01:30:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537376",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "Canada",
+      "code": "ca",
+      "flag": "https://flagcdn.com/w40/ca.png"
+    },
+    "awayTeam": {
+      "name": "Morocco",
+      "code": "ma",
+      "flag": "https://flagcdn.com/w40/ma.png"
+    },
+    "date": "2026-07-04T17:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537375",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "Paraguay",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "France",
+      "code": "fr",
+      "flag": "https://flagcdn.com/w40/fr.png"
+    },
+    "date": "2026-07-04T21:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537377",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "Brazil",
+      "code": "br",
+      "flag": "https://flagcdn.com/w40/br.png"
+    },
+    "awayTeam": {
+      "name": "Norway",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-05T20:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537378",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "Mexico",
+      "code": "mx",
+      "flag": "https://flagcdn.com/w40/mx.png"
+    },
+    "awayTeam": {
+      "name": "England",
+      "code": "gb-eng",
+      "flag": "https://flagcdn.com/w40/gb-eng.png"
+    },
+    "date": "2026-07-06T00:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537379",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-06T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537380",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "United States",
+      "code": "us",
+      "flag": "https://flagcdn.com/w40/us.png"
+    },
+    "awayTeam": {
+      "name": "Belgium",
+      "code": "be",
+      "flag": "https://flagcdn.com/w40/be.png"
+    },
+    "date": "2026-07-07T00:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537381",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-07T16:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537382",
+    "stage": "Round of 16",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-07T20:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537383",
+    "stage": "Quarter-finals",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-09T20:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537384",
+    "stage": "Quarter-finals",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-10T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537385",
+    "stage": "Quarter-finals",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-11T21:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537386",
+    "stage": "Quarter-finals",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-12T01:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537387",
+    "stage": "Semi-finals",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-14T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537388",
+    "stage": "Semi-finals",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-15T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537389",
+    "stage": "Third-place",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-18T21:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  },
+  {
+    "id": "537390",
+    "stage": "Final",
+    "homeTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "awayTeam": {
+      "name": "TBD",
+      "code": "",
+      "flag": ""
+    },
+    "date": "2026-07-19T19:00:00Z",
+    "venue": "",
+    "city": "",
+    "status": "upcoming",
+    "score": {
+      "home": null,
+      "away": null
+    },
+    "winner": null,
+    "goals": []
+  }
+]

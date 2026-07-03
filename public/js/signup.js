@@ -1,0 +1,33 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("[data-signup-form]");
+  const errorEl = document.querySelector("[data-auth-error]");
+  const nextUrl = new URLSearchParams(location.search).get("next") || "matches.html";
+
+  if (WCAuth.getCurrentUser()) {
+    location.href = nextUrl;
+    return;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorEl.textContent = "";
+    const submitButton = form.querySelector("button[type='submit']");
+    submitButton.disabled = true;
+    submitButton.textContent = "Creating account...";
+    const result = await WCAuth.signUp({
+      displayName: form.elements.displayName.value,
+      email: form.elements.email.value,
+      password: form.elements.password.value,
+      confirmPassword: form.elements.confirmPassword.value,
+      adminCode: form.elements.adminCode.value,
+    });
+    submitButton.disabled = false;
+    submitButton.textContent = "Create Account";
+
+    if (!result.success) {
+      errorEl.textContent = result.error;
+      return;
+    }
+    location.href = nextUrl;
+  });
+});

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="World Cup 2026 prediction game leaderboard rankings.">
+    <title>WC 2026 Predict | Leaderboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
+          <span class="logo-mark">WC</span>
+          <span>WC 2026 Predict</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a class="active" href="leaderboard.html">Leaderboard</a>
+          <span class="auth-nav" data-auth-nav></span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Rankings</p>
+              <h1>Top 10 Predictors</h1>
+            </div>
+            <a class="btn btn-primary" href="matches.html">Make Predictions</a>
+          </div>
+          <div class="top10-grid" data-top10></div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Scoring</p>
+              <h2>How Points Work</h2>
+            </div>
+          </div>
+          <div class="scoring-grid">
+            <article class="info-card">
+              <strong>+2</strong>
+              <p>Correct winner prediction</p>
+            </article>
+            <article class="info-card">
+              <strong>+3</strong>
+              <p>Correct exact score prediction</p>
+            </article>
+            <article class="info-card">
+              <strong>0</strong>
+              <p>No participation points</p>
+            </article>
+            <article class="info-card">
+              <strong>0</strong>
+              <p>No combined bonus points</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">All players</p>
+              <h2>Overall Rankings</h2>
+            </div>
+          </div>
+          <div class="leader-tools">
+            <input type="search" data-leaderboard-search placeholder="Search by name" aria-label="Search leaderboard by name">
+            <select data-leaderboard-sort aria-label="Sort leaderboard">
+              <option value="points">Sort by points</option>
+              <option value="exactScores">Sort by exact scores</option>
+              <option value="correctWinners">Sort by correct winners</option>
+            </select>
+          </div>
+          <div data-overall></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer">
+        <div>
+          <strong>WC 2026 Predict</strong>
+          <p>For entertainment and points-based predictions only. No payments, odds, wagering, deposits, wallets, or cash prizes are implemented.</p>
+          <p>Data powered by football API provider.</p>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+        </nav>
+      </div>
+    </footer>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/leaderboard.js"></script>
+  </body>
+</html>

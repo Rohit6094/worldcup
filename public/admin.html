@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="WC 2026 Predict admin dashboard.">
+    <title>WC 2026 Predict | Admin</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
+          <span class="logo-mark">WC</span>
+          <span>WC 2026 Predict</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <a class="active" href="admin.html">Admin</a>
+          <span class="auth-nav" data-auth-nav></span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Admin</p>
+              <h1>Prediction Control Center</h1>
+            </div>
+          </div>
+          <div class="data-notice">
+            Demo admin access is browser-local. Production needs server-side roles, audit logs, protected APIs, and persistent storage.
+          </div>
+          <div class="scoring-grid" data-admin-stats></div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Submissions</p>
+              <h2>Saved Predictions</h2>
+            </div>
+          </div>
+          <div data-admin-predictions></div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Accounts</p>
+              <h2>Local Users</h2>
+            </div>
+          </div>
+          <div data-admin-users></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+  </body>
+</html>

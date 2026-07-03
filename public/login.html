@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Login to WC 2026 Predict.">
+    <title>WC 2026 Predict | Login</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
+          <span class="logo-mark">WC</span>
+          <span>WC 2026 Predict</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <span class="auth-nav" data-auth-nav></span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="auth-page">
+      <section class="auth-shell container">
+        <div class="auth-copy">
+          <p class="eyebrow">Secure demo login</p>
+          <h1>Login to predict matches.</h1>
+          <p>Your demo password is hashed before it is stored in this browser. Production accounts still require server-side sessions, database storage, rate limiting, and email verification.</p>
+        </div>
+        <div class="auth-card">
+          <h2>Login</h2>
+          <form class="auth-form" data-login-form>
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required>
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" autocomplete="current-password" required>
+            </label>
+            <p class="form-error" data-auth-error role="alert"></p>
+            <button class="btn btn-primary" type="submit">Login</button>
+          </form>
+          <p class="auth-switch">No account yet? <a href="signup.html">Create one</a></p>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/login.js"></script>
+  </body>
+</html>

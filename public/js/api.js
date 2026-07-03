@@ -1,0 +1,675 @@
+(function () {
+  const STORAGE_KEY = "wc2026_predictions";
+  let lastMatchesMeta = { source: "unknown" };
+
+  const teamCountryCodes = {
+    Argentina: "ar",
+    Brazil: "br",
+    England: "gb-eng",
+    France: "fr",
+    Germany: "de",
+    Ghana: "gh",
+    Japan: "jp",
+    Mexico: "mx",
+    Morocco: "ma",
+    Netherlands: "nl",
+    Portugal: "pt",
+    Senegal: "sn",
+    Spain: "es",
+    "South Korea": "kr",
+    "United States": "us",
+    USA: "us",
+  };
+
+  const fallbackFlag =
+    "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2228%22 viewBox=%220 0 40 28%22%3E%3Crect width=%2240%22 height=%2228%22 rx=%224%22 fill=%22%23e5e7eb%22/%3E%3Cpath d=%22M9 18h22M9 10h22%22 stroke=%22%239ca3af%22 stroke-width=%222%22 stroke-linecap=%22round%22/%3E%3C/svg%3E";
+
+  const fallbackMatches = [
+    {
+      id: "r32-001",
+      stage: "Round of 32",
+      homeTeam: { name: "United States", code: "us", flag: "https://flagcdn.com/w40/us.png" },
+      awayTeam: { name: "Japan", code: "jp", flag: "https://flagcdn.com/w40/jp.png" },
+      date: "2026-06-28T19:00:00Z",
+      venue: "MetLife Stadium",
+      city: "East Rutherford",
+      status: "completed",
+      score: { home: 2, away: 1 },
+      winner: "United States",
+      goals: [
+        { team: "United States", player: "Christian Pulisic", minute: 18 },
+        { team: "Japan", player: "Takefusa Kubo", minute: 54 },
+        { team: "United States", player: "Folarin Balogun", minute: 78 },
+      ],
+    },
+    {
+      id: "r32-002",
+      stage: "Round of 32",
+      homeTeam: { name: "Brazil", code: "br", flag: "https://flagcdn.com/w40/br.png" },
+      awayTeam: { name: "Morocco", code: "ma", flag: "https://flagcdn.com/w40/ma.png" },
+      date: "2026-06-28T23:00:00Z",
+      venue: "AT&T Stadium",
+      city: "Arlington",
+      status: "completed",
+      score: { home: 1, away: 0 },
+      winner: "Brazil",
+      goals: [{ team: "Brazil", player: "Vinicius Junior", minute: 66 }],
+    },
+    {
+      id: "r32-003",
+      stage: "Round of 32",
+      homeTeam: { name: "France", code: "fr", flag: "https://flagcdn.com/w40/fr.png" },
+      awayTeam: { name: "Mexico", code: "mx", flag: "https://flagcdn.com/w40/mx.png" },
+      date: "2026-06-29T19:00:00Z",
+      venue: "Estadio Azteca",
+      city: "Mexico City",
+      status: "completed",
+      score: { home: 3, away: 1 },
+      winner: "France",
+      goals: [
+        { team: "France", player: "Kylian Mbappe", minute: 12 },
+        { team: "Mexico", player: "Santiago Gimenez", minute: 37 },
+        { team: "France", player: "Antoine Griezmann", minute: 61 },
+      ],
+    },
+    {
+      id: "r32-004",
+      stage: "Round of 32",
+      homeTeam: { name: "England", code: "gb-eng", flag: "https://flagcdn.com/w40/gb-eng.png" },
+      awayTeam: { name: "Senegal", code: "sn", flag: "https://flagcdn.com/w40/sn.png" },
+      date: "2026-06-29T23:00:00Z",
+      venue: "BC Place",
+      city: "Vancouver",
+      status: "completed",
+      score: { home: 2, away: 2 },
+      winner: "England",
+      goals: [
+        { team: "England", player: "Harry Kane", minute: 25 },
+        { team: "Senegal", player: "Ismaila Sarr", minute: 41 },
+        { team: "Senegal", player: "Nicolas Jackson", minute: 70 },
+        { team: "England", player: "Jude Bellingham", minute: 89 },
+      ],
+    },
+    {
+      id: "r32-005",
+      stage: "Round of 32",
+      homeTeam: { name: "Spain", code: "es", flag: "https://flagcdn.com/w40/es.png" },
+      awayTeam: { name: "South Korea", code: "kr", flag: "https://flagcdn.com/w40/kr.png" },
+      date: "2026-06-30T18:00:00Z",
+      venue: "Lumen Field",
+      city: "Seattle",
+      status: "completed",
+      score: { home: 2, away: 0 },
+      winner: "Spain",
+      goals: [
+        { team: "Spain", player: "Pedri", minute: 33 },
+        { team: "Spain", player: "Alvaro Morata", minute: 74 },
+      ],
+    },
+    {
+      id: "r32-006",
+      stage: "Round of 32",
+      homeTeam: { name: "Argentina", code: "ar", flag: "https://flagcdn.com/w40/ar.png" },
+      awayTeam: { name: "Croatia", code: "hr", flag: "https://flagcdn.com/w40/hr.png" },
+      date: "2026-06-30T22:00:00Z",
+      venue: "SoFi Stadium",
+      city: "Inglewood",
+      status: "completed",
+      score: { home: 1, away: 1 },
+      winner: "Argentina",
+      goals: [
+        { team: "Croatia", player: "Luka Modric", minute: 29 },
+        { team: "Argentina", player: "Julian Alvarez", minute: 63 },
+      ],
+    },
+    {
+      id: "r32-007",
+      stage: "Round of 32",
+      homeTeam: { name: "Portugal", code: "pt", flag: "https://flagcdn.com/w40/pt.png" },
+      awayTeam: { name: "Ghana", code: "gh", flag: "https://flagcdn.com/w40/gh.png" },
+      date: "2026-07-01T18:00:00Z",
+      venue: "Hard Rock Stadium",
+      city: "Miami",
+      status: "completed",
+      score: { home: 2, away: 1 },
+      winner: "Portugal",
+      goals: [
+        { team: "Portugal", player: "Bruno Fernandes", minute: 20 },
+        { team: "Ghana", player: "Mohammed Kudus", minute: 47 },
+        { team: "Portugal", player: "Rafael Leao", minute: 81 },
+      ],
+    },
+    {
+      id: "r32-008",
+      stage: "Round of 32",
+      homeTeam: { name: "Germany", code: "de", flag: "https://flagcdn.com/w40/de.png" },
+      awayTeam: { name: "Netherlands", code: "nl", flag: "https://flagcdn.com/w40/nl.png" },
+      date: "2026-07-01T22:00:00Z",
+      venue: "Mercedes-Benz Stadium",
+      city: "Atlanta",
+      status: "completed",
+      score: { home: 3, away: 2 },
+      winner: "Germany",
+      goals: [
+        { team: "Netherlands", player: "Cody Gakpo", minute: 9 },
+        { team: "Germany", player: "Jamal Musiala", minute: 31 },
+        { team: "Germany", player: "Kai Havertz", minute: 55 },
+        { team: "Netherlands", player: "Xavi Simons", minute: 73 },
+        { team: "Germany", player: "Florian Wirtz", minute: 87 },
+      ],
+    },
+    {
+      id: "r16-001",
+      stage: "Round of 16",
+      homeTeam: { name: "United States", code: "us", flag: "https://flagcdn.com/w40/us.png" },
+      awayTeam: { name: "Brazil", code: "br", flag: "https://flagcdn.com/w40/br.png" },
+      date: "2026-07-03T20:00:00Z",
+      venue: "Levi's Stadium",
+      city: "Santa Clara",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "r16-002",
+      stage: "Round of 16",
+      homeTeam: { name: "France", code: "fr", flag: "https://flagcdn.com/w40/fr.png" },
+      awayTeam: { name: "England", code: "gb-eng", flag: "https://flagcdn.com/w40/gb-eng.png" },
+      date: "2026-07-04T00:00:00Z",
+      venue: "Gillette Stadium",
+      city: "Foxborough",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "r16-003",
+      stage: "Round of 16",
+      homeTeam: { name: "Spain", code: "es", flag: "https://flagcdn.com/w40/es.png" },
+      awayTeam: { name: "Argentina", code: "ar", flag: "https://flagcdn.com/w40/ar.png" },
+      date: "2026-07-04T20:00:00Z",
+      venue: "NRG Stadium",
+      city: "Houston",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "r16-004",
+      stage: "Round of 16",
+      homeTeam: { name: "Portugal", code: "pt", flag: "https://flagcdn.com/w40/pt.png" },
+      awayTeam: { name: "Germany", code: "de", flag: "https://flagcdn.com/w40/de.png" },
+      date: "2026-07-05T00:00:00Z",
+      venue: "Arrowhead Stadium",
+      city: "Kansas City",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "qf-001",
+      stage: "Quarter-finals",
+      homeTeam: { name: "Winner R16 1", code: "", flag: "" },
+      awayTeam: { name: "Winner R16 2", code: "", flag: "" },
+      date: "2026-07-09T21:00:00Z",
+      venue: "MetLife Stadium",
+      city: "East Rutherford",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "qf-002",
+      stage: "Quarter-finals",
+      homeTeam: { name: "Winner R16 3", code: "", flag: "" },
+      awayTeam: { name: "Winner R16 4", code: "", flag: "" },
+      date: "2026-07-10T01:00:00Z",
+      venue: "AT&T Stadium",
+      city: "Arlington",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "sf-001",
+      stage: "Semi-finals",
+      homeTeam: { name: "Winner QF 1", code: "", flag: "" },
+      awayTeam: { name: "Winner QF 2", code: "", flag: "" },
+      date: "2026-07-14T23:00:00Z",
+      venue: "AT&T Stadium",
+      city: "Arlington",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "tp-001",
+      stage: "Third-place",
+      homeTeam: { name: "Loser SF 1", code: "", flag: "" },
+      awayTeam: { name: "Loser SF 2", code: "", flag: "" },
+      date: "2026-07-18T20:00:00Z",
+      venue: "Hard Rock Stadium",
+      city: "Miami",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "final-001",
+      stage: "Final",
+      homeTeam: { name: "Winner SF 1", code: "", flag: "" },
+      awayTeam: { name: "Winner SF 2", code: "", flag: "" },
+      date: "2026-07-19T19:00:00Z",
+      venue: "MetLife Stadium",
+      city: "East Rutherford",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+  ];
+
+  const fallbackLeaderboard = [
+    { rank: 1, displayName: "Alex Morgan", points: 51, correctWinners: 18, exactScores: 5, totalPredictions: 24 },
+    { rank: 2, displayName: "Riley Chen", points: 49, correctWinners: 17, exactScores: 5, totalPredictions: 23 },
+    { rank: 3, displayName: "Sam Rivera", points: 44, correctWinners: 16, exactScores: 4, totalPredictions: 22 },
+    { rank: 4, displayName: "Priya Shah", points: 42, correctWinners: 15, exactScores: 4, totalPredictions: 23 },
+    { rank: 5, displayName: "Mateo Silva", points: 40, correctWinners: 14, exactScores: 4, totalPredictions: 21 },
+    { rank: 6, displayName: "Jordan Lee", points: 38, correctWinners: 13, exactScores: 4, totalPredictions: 20 },
+    { rank: 7, displayName: "Nora Patel", points: 37, correctWinners: 14, exactScores: 3, totalPredictions: 22 },
+    { rank: 8, displayName: "Leo Garcia", points: 33, correctWinners: 12, exactScores: 3, totalPredictions: 19 },
+    { rank: 9, displayName: "Maya Brown", points: 31, correctWinners: 11, exactScores: 3, totalPredictions: 19 },
+    { rank: 10, displayName: "Owen Brooks", points: 30, correctWinners: 12, exactScores: 2, totalPredictions: 18 },
+    { rank: 11, displayName: "Ava Wilson", points: 26, correctWinners: 10, exactScores: 2, totalPredictions: 17 },
+    { rank: 12, displayName: "Noah Kim", points: 24, correctWinners: 9, exactScores: 2, totalPredictions: 18 },
+    { rank: 13, displayName: "Isla Thompson", points: 22, correctWinners: 8, exactScores: 2, totalPredictions: 16 },
+    { rank: 14, displayName: "Ethan Davis", points: 21, correctWinners: 9, exactScores: 1, totalPredictions: 16 },
+    { rank: 15, displayName: "Lina Ahmed", points: 19, correctWinners: 8, exactScores: 1, totalPredictions: 15 },
+    { rank: 16, displayName: "Ben Carter", points: 17, correctWinners: 7, exactScores: 1, totalPredictions: 15 },
+    { rank: 17, displayName: "Sofia Rossi", points: 15, correctWinners: 6, exactScores: 1, totalPredictions: 14 },
+    { rank: 18, displayName: "Daniel Park", points: 12, correctWinners: 6, exactScores: 0, totalPredictions: 13 },
+    { rank: 19, displayName: "Grace Miller", points: 10, correctWinners: 5, exactScores: 0, totalPredictions: 12 },
+    { rank: 20, displayName: "Hugo Martin", points: 8, correctWinners: 4, exactScores: 0, totalPredictions: 11 },
+  ];
+
+  async function requestJson(url, options = {}) {
+    const response = await fetch(url, {
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      ...options,
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async function fetchStaticFallback(path, fallbackValue) {
+    try {
+      const response = await fetch(path, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Static fallback failed with ${response.status}`);
+      return response.json();
+    } catch (error) {
+      return fallbackValue;
+    }
+  }
+
+  async function fetchMatches() {
+    try {
+      const payload = await requestJson("/api/matches");
+      if (Array.isArray(payload)) {
+        lastMatchesMeta = { source: "api" };
+        return payload;
+      }
+      lastMatchesMeta = {
+        source: payload.source || "unknown",
+        fallbackReason: payload.fallbackReason || "",
+        totalFixtures: payload.totalFixtures,
+        knockoutFixtures: payload.knockoutFixtures,
+      };
+      return payload.matches || fallbackMatches;
+    } catch (error) {
+      console.warn("Using local fallback matches", error);
+      lastMatchesMeta = {
+        source: "browser-fallback",
+        fallbackReason: "Could not reach /api/matches from this page.",
+      };
+      return fetchStaticFallback("data/mock_matches.json", fallbackMatches);
+    }
+  }
+
+  function getMatchesMeta() {
+    return { ...lastMatchesMeta };
+  }
+
+  async function fetchLeaderboard() {
+    try {
+      const payload = await requestJson("/api/leaderboard");
+      const overall = payload.overall || fallbackLeaderboard;
+      return { top10: payload.top10 || overall.slice(0, 10), overall };
+    } catch (error) {
+      console.warn("Using local fallback leaderboard", error);
+      const overall = await fetchStaticFallback("data/mock_leaderboard.json", fallbackLeaderboard);
+      return { top10: overall.slice(0, 10), overall };
+    }
+  }
+
+  async function submitPrediction(prediction) {
+    try {
+      return await requestJson("/api/submit_prediction", {
+        method: "POST",
+        body: JSON.stringify(prediction),
+      });
+    } catch (error) {
+      console.warn("Prediction saved locally only", error);
+      return { success: true, prediction, localOnly: true };
+    }
+  }
+
+  async function fetchPredictions() {
+    try {
+      const payload = await requestJson("/api/predictions");
+      return payload.predictions || [];
+    } catch (error) {
+      console.warn("Using local predictions only", error);
+      return [];
+    }
+  }
+
+  function getTeamCode(team) {
+    return team?.code || teamCountryCodes[team?.name] || "";
+  }
+
+  function getFlagUrl(team) {
+    const code = getTeamCode(team);
+    return team?.flag || (code ? `https://flagcdn.com/w40/${code}.png` : fallbackFlag);
+  }
+
+  function teamMarkup(team, compact = false) {
+    const name = team?.name || "TBD";
+    return `
+      <span class="team ${compact ? "team-compact" : ""}">
+        <img src="${getFlagUrl(team)}" alt="" loading="lazy" onerror="this.src='${fallbackFlag}'">
+        <span>${escapeHtml(name)}</span>
+      </span>
+    `;
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "Date TBD";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Date TBD";
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  }
+
+  function formatFullDateTime(value) {
+    if (!value) return "Date TBD";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Date TBD";
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date);
+  }
+
+  function getSavedPredictions() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function savePredictionLocally(prediction) {
+    const user = window.WCAuth?.getCurrentUser?.();
+    const predictions = getSavedPredictions().filter((item) => {
+      if (user) return !(item.matchId === prediction.matchId && item.userId === user.id);
+      return item.matchId !== prediction.matchId;
+    });
+    predictions.push(prediction);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
+  }
+
+  function getPredictionForMatch(matchId) {
+    const user = window.WCAuth?.getCurrentUser?.();
+    return getSavedPredictions().find((prediction) => {
+      if (user) return prediction.matchId === matchId && prediction.userId === user.id;
+      return prediction.matchId === matchId && !prediction.userId;
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function showToast(message, type = "success") {
+    const toast = document.querySelector("[data-toast]");
+    if (!toast) return;
+    toast.textContent = message;
+    toast.className = `toast show ${type}`;
+    window.setTimeout(() => {
+      toast.className = "toast";
+    }, 3200);
+  }
+
+  function ensurePredictionModal() {
+    let modal = document.querySelector("[data-prediction-modal]");
+    if (modal) return modal;
+
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = `
+      <div class="modal-backdrop" data-prediction-modal hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="prediction-title">
+          <button class="modal-close" type="button" data-close-modal aria-label="Close prediction form">&times;</button>
+          <div class="modal-header">
+            <p class="eyebrow" data-modal-stage></p>
+            <h2 id="prediction-title">Submit Prediction</h2>
+          </div>
+          <div class="modal-teams" data-modal-teams></div>
+          <form class="prediction-form" data-prediction-form>
+            <label>
+              Display name
+              <input type="text" name="displayName" maxlength="80" placeholder="Your name" required readonly>
+            </label>
+            <label>
+              Predicted winner
+              <select name="predictedWinner" required></select>
+            </label>
+            <label data-advancing-wrap hidden>
+              Advancing team after penalties
+              <select name="advancingTeam"></select>
+            </label>
+            <div class="score-inputs">
+              <label>
+                Home goals
+                <input type="number" name="homeScore" min="0" step="1" inputmode="numeric" required>
+              </label>
+              <label>
+                Away goals
+                <input type="number" name="awayScore" min="0" step="1" inputmode="numeric" required>
+              </label>
+            </div>
+            <p class="form-error" data-form-error role="alert"></p>
+            <button class="btn btn-primary" type="submit">Save Prediction</button>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(wrapper.firstElementChild);
+    modal = document.querySelector("[data-prediction-modal]");
+    modal.addEventListener("click", (event) => {
+      if (event.target.matches("[data-prediction-modal], [data-close-modal]")) {
+        closePredictionModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closePredictionModal();
+    });
+    return modal;
+  }
+
+  function openPredictionModal(match, onSaved) {
+    const currentUser = window.WCAuth?.getCurrentUser?.();
+    if (!currentUser) {
+      showToast("Login or create an account to save predictions.", "error");
+      window.setTimeout(() => {
+        const next = encodeURIComponent(`${location.pathname}${location.search}`);
+        location.href = `login.html?next=${next}`;
+      }, 700);
+      return;
+    }
+
+    const modal = ensurePredictionModal();
+    const existing = getPredictionForMatch(match.id) || {};
+    const form = modal.querySelector("[data-prediction-form]");
+    const winnerSelect = form.elements.predictedWinner;
+    const displayName = currentUser.displayName;
+
+    modal.querySelector("[data-modal-stage]").textContent = match.stage || "Knockout match";
+    modal.querySelector("[data-modal-teams]").innerHTML = `
+      ${teamMarkup(match.homeTeam)}
+      <span class="versus">vs</span>
+      ${teamMarkup(match.awayTeam)}
+    `;
+    winnerSelect.innerHTML = `
+      <option value="">Select winner</option>
+      <option value="${escapeHtml(match.homeTeam?.name)}">${escapeHtml(match.homeTeam?.name || "Home team")}</option>
+      <option value="${escapeHtml(match.awayTeam?.name)}">${escapeHtml(match.awayTeam?.name || "Away team")}</option>
+      <option value="Draw / Penalties">Draw / Penalties</option>
+    `;
+    form.elements.advancingTeam.innerHTML = `
+      <option value="">Select advancing team</option>
+      <option value="${escapeHtml(match.homeTeam?.name)}">${escapeHtml(match.homeTeam?.name || "Home team")}</option>
+      <option value="${escapeHtml(match.awayTeam?.name)}">${escapeHtml(match.awayTeam?.name || "Away team")}</option>
+    `;
+    form.elements.displayName.value = displayName;
+    form.elements.predictedWinner.value = existing.predictedWinner || "";
+    form.elements.advancingTeam.value = existing.advancingTeam || "";
+    form.elements.homeScore.value = existing.homeScore ?? "";
+    form.elements.awayScore.value = existing.awayScore ?? "";
+    form.dataset.matchId = match.id;
+    form.querySelector("[data-form-error]").textContent = "";
+    updateAdvancingVisibility(form);
+
+    winnerSelect.onchange = () => updateAdvancingVisibility(form);
+
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      const homeScore = Number(form.elements.homeScore.value);
+      const awayScore = Number(form.elements.awayScore.value);
+      const errorEl = form.querySelector("[data-form-error]");
+
+      if (!form.elements.predictedWinner.value || !form.elements.displayName.value.trim()) {
+        errorEl.textContent = "Please enter your name and predicted winner.";
+        return;
+      }
+      if (!Number.isInteger(homeScore) || homeScore < 0 || !Number.isInteger(awayScore) || awayScore < 0) {
+        errorEl.textContent = "Scores must be non-negative whole numbers.";
+        return;
+      }
+      if (form.elements.predictedWinner.value === "Draw / Penalties" && homeScore !== awayScore) {
+        errorEl.textContent = "A draw / penalties prediction should use a tied score.";
+        return;
+      }
+      if (form.elements.predictedWinner.value === "Draw / Penalties" && !form.elements.advancingTeam.value) {
+        errorEl.textContent = "Select the team advancing after penalties.";
+        return;
+      }
+
+      const prediction = {
+        matchId: match.id,
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        displayName: currentUser.displayName,
+        predictedWinner: form.elements.predictedWinner.value,
+        advancingTeam: form.elements.predictedWinner.value === "Draw / Penalties" ? form.elements.advancingTeam.value : "",
+        homeScore,
+        awayScore,
+        submittedAt: new Date().toISOString(),
+      };
+
+      const submitButton = form.querySelector("button[type='submit']");
+      submitButton.disabled = true;
+      submitButton.textContent = "Saving...";
+      const result = await submitPrediction(prediction);
+      submitButton.disabled = false;
+      submitButton.textContent = "Save Prediction";
+
+      if (!result.success) {
+        errorEl.textContent = result.error || "Prediction could not be saved.";
+        return;
+      }
+
+      savePredictionLocally(result.prediction || prediction);
+      closePredictionModal();
+      showToast(result.localOnly ? "Prediction saved in this browser." : "Prediction submitted.");
+      if (typeof onSaved === "function") onSaved(prediction);
+    };
+
+    modal.hidden = false;
+    document.body.classList.add("modal-open");
+    window.setTimeout(() => form.elements.predictedWinner.focus(), 0);
+  }
+
+  function closePredictionModal() {
+    const modal = document.querySelector("[data-prediction-modal]");
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+
+  function updateAdvancingVisibility(form) {
+    const wrap = form.querySelector("[data-advancing-wrap]");
+    const needsAdvancingTeam = form.elements.predictedWinner.value === "Draw / Penalties";
+    wrap.hidden = !needsAdvancingTeam;
+    form.elements.advancingTeam.required = needsAdvancingTeam;
+    if (!needsAdvancingTeam) form.elements.advancingTeam.value = "";
+  }
+
+  function scoreText(match) {
+    const home = match?.score?.home;
+    const away = match?.score?.away;
+    return Number.isInteger(home) && Number.isInteger(away) ? `${home} - ${away}` : "vs";
+  }
+
+  window.WCApp = {
+    fallbackFlag,
+    teamCountryCodes,
+    fetchMatches,
+    getMatchesMeta,
+    fetchLeaderboard,
+    submitPrediction,
+    fetchPredictions,
+    getFlagUrl,
+    teamMarkup,
+    formatDateTime,
+    formatFullDateTime,
+    getSavedPredictions,
+    getPredictionForMatch,
+    openPredictionModal,
+    showToast,
+    scoreText,
+    escapeHtml,
+  };
+})();

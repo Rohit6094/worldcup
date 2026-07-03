@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Create a WC 2026 Predict account.">
+    <title>WC 2026 Predict | Sign Up</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
+          <span class="logo-mark">WC</span>
+          <span>WC 2026 Predict</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <span class="auth-nav" data-auth-nav></span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="auth-page">
+      <section class="auth-shell container">
+        <div class="auth-copy">
+          <p class="eyebrow">Create account</p>
+          <h1>Save predictions under your name.</h1>
+          <p>Use a strong password. This demo stores account data only in your browser and never exposes football API keys to the frontend.</p>
+        </div>
+        <div class="auth-card">
+          <h2>Sign Up</h2>
+          <form class="auth-form" data-signup-form>
+            <label>
+              Display name
+              <input type="text" name="displayName" maxlength="80" autocomplete="name" required>
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required>
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" autocomplete="new-password" minlength="10" required>
+            </label>
+            <label>
+              Confirm password
+              <input type="password" name="confirmPassword" autocomplete="new-password" minlength="10" required>
+            </label>
+            <label>
+              Admin invite code
+              <input type="password" name="adminCode" autocomplete="off" placeholder="Optional">
+            </label>
+            <p class="auth-hint">Password must include uppercase, lowercase, and a number.</p>
+            <p class="form-error" data-auth-error role="alert"></p>
+            <button class="btn btn-primary" type="submit">Create Account</button>
+          </form>
+          <p class="auth-switch">Already have an account? <a href="login.html">Login</a></p>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/signup.js"></script>
+  </body>
+</html>

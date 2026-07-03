@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Predict FIFA World Cup 2026 knockout winners and scores for points.">
+    <title>WC 2026 Predict | Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
+          <span class="logo-mark">WC</span>
+          <span>WC 2026 Predict</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a class="active" href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <span class="auth-nav" data-auth-nav></span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-panel">
+          <div class="hero-copy">
+            <p class="eyebrow">Points-based prediction game</p>
+            <h1>Predict the World Cup. Climb the Leaderboard.</h1>
+            <p>Pick knockout match winners and exact scores for FIFA World Cup 2026 games. Earn leaderboard points for accurate predictions.</p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="matches.html">View Matches</a>
+              <a class="btn btn-secondary" href="leaderboard.html">Leaderboard</a>
+            </div>
+          </div>
+          <aside class="hero-stats" aria-label="Game summary">
+            <div class="stat-card">
+              <span>Correct winner</span>
+              <strong>+2</strong>
+              <span>points</span>
+            </div>
+            <div class="stat-card">
+              <span>Exact score</span>
+              <strong>+3</strong>
+              <span>points</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="data-notice" data-data-notice hidden></div>
+          <div class="summary-grid">
+            <div class="summary-column">
+              <div class="section-heading">
+                <h2>Previous Completed Games</h2>
+              </div>
+              <div class="stack" data-previous-games></div>
+            </div>
+            <div class="summary-column">
+              <div class="section-heading">
+                <h2>Upcoming Games</h2>
+              </div>
+              <div class="stack" data-upcoming-games></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Knockout predictions</p>
+              <h2>Round of 16 Predictions</h2>
+            </div>
+            <a class="btn btn-ghost" href="matches.html">All Matches</a>
+          </div>
+          <div class="featured-grid" data-featured-matches></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer">
+        <div>
+          <strong>WC 2026 Predict</strong>
+          <p>Predict knockout winners and scores for leaderboard points. For entertainment and points-based predictions only. No betting, wagering, wallets, deposits, odds, or cash prizes.</p>
+          <p>Data powered by football API provider.</p>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+        </nav>
+      </div>
+    </footer>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
