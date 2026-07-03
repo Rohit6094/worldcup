@@ -215,15 +215,20 @@
     return payload;
   }
 
+  async function fetchNotificationPredictions() {
+    const predictionPayload = await requestProtectedJson(`/api/predictions?t=${Date.now()}`);
+    return predictionPayload.predictions || [];
+  }
+
   async function fetchNotificationData() {
-    const [predictionPayload, matchPayload] = await Promise.all([
+    const [predictionPayload, matches] = await Promise.all([
       requestProtectedJson(`/api/predictions?t=${Date.now()}`),
-      requestProtectedJson(`/api/matches?t=${Date.now()}`),
+      window.WCApp?.fetchMatches ? window.WCApp.fetchMatches() : requestProtectedJson(`/api/matches?t=${Date.now()}`),
     ]);
-    const matches = Array.isArray(matchPayload) ? matchPayload : matchPayload.matches || [];
+    const normalizedMatches = Array.isArray(matches) ? matches : matches.matches || [];
     return {
       predictions: predictionPayload.predictions || [],
-      matchesById: new Map(matches.map((match) => [String(match.id), match])),
+      matchesById: new Map(normalizedMatches.map((match) => [String(match.id), match])),
     };
   }
 
@@ -231,7 +236,7 @@
     const countEl = nav.querySelector("[data-notification-count]");
     if (!countEl) return;
     try {
-      const { predictions } = await fetchNotificationData();
+      const predictions = await fetchNotificationPredictions();
       countEl.textContent = String(Math.min(predictions.length, 99));
     } catch (error) {
       countEl.textContent = "0";
@@ -405,6 +410,7 @@
     }
 
     function hideHeader() {
+      if (header.classList.contains("nav-open")) return;
       if (header.matches(":focus-within")) return;
       header.classList.add("header-hidden");
       header.classList.remove("header-visible");
@@ -439,6 +445,47 @@
     showHeader();
   }
 
+  function initMobileNav() {
+    const header = document.querySelector(".site-header");
+    const nav = document.querySelector(".nav");
+    const navLinks = document.querySelector(".nav-links");
+    if (!header || !nav || !navLinks || document.querySelector("[data-nav-toggle]")) return;
+
+    const button = document.createElement("button");
+    button.className = "nav-menu-toggle";
+    button.type = "button";
+    button.dataset.navToggle = "true";
+    button.setAttribute("aria-label", "Open navigation menu");
+    button.setAttribute("aria-expanded", "false");
+    button.innerHTML = "<span></span><span></span><span></span>";
+    nav.insertBefore(button, navLinks);
+
+    function closeMenu() {
+      header.classList.remove("nav-open");
+      button.setAttribute("aria-expanded", "false");
+      button.setAttribute("aria-label", "Open navigation menu");
+    }
+
+    function toggleMenu() {
+      const isOpen = header.classList.toggle("nav-open");
+      header.classList.remove("header-hidden");
+      header.classList.add("header-visible");
+      button.setAttribute("aria-expanded", String(isOpen));
+      button.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+    }
+
+    button.addEventListener("click", toggleMenu);
+    navLinks.addEventListener("click", (event) => {
+      if (event.target.closest("a")) closeMenu();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
+    });
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 680) closeMenu();
+    });
+  }
+
   document.addEventListener("click", (event) => {
     document.querySelectorAll("[data-notification-menu]").forEach((menu) => {
       if (!menu.contains(event.target)) closeNotifications(menu);
@@ -452,8 +499,10 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     initAutoHideHeader();
-    renderAuthNav();
-    if (getCurrentUser()) await fetchUsers();
+    initMobileNav();
+    if (getCurrentUser()) {
+      await fetchUsers();
+    }
     renderAuthNav();
   });
 

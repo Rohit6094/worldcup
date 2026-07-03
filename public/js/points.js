@@ -1,6 +1,7 @@
 const pointsState = {
   currentUser: null,
   matches: [],
+  predictions: [],
   rows: [],
 };
 
@@ -9,6 +10,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   pointsState.currentUser = WCAuth.getCurrentUser();
   await loadPredictionPoints();
+
+  document.addEventListener("wc:matches-updated", (event) => {
+    if (!Array.isArray(event.detail?.matches)) return;
+    pointsState.matches = event.detail.matches;
+    pointsState.rows = WCApp.buildPredictionRows(pointsState.predictions, pointsState.matches);
+    const userRows = getUserRows(pointsState.rows, pointsState.currentUser);
+    renderPerformanceSummary(userRows);
+    renderUserPredictions(userRows, pointsState.currentUser);
+    renderOverallPredictions(pointsState.rows);
+  });
 
   document.addEventListener("click", async (event) => {
     const editButton = event.target.closest("[data-edit-own-prediction]");
@@ -58,6 +69,7 @@ async function loadPredictionPoints() {
 
   pointsState.currentUser = WCAuth.getCurrentUser();
   pointsState.matches = matches;
+  pointsState.predictions = predictions;
   pointsState.rows = rows;
 
   const userRows = getUserRows(rows, pointsState.currentUser);

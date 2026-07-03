@@ -1,6 +1,9 @@
 (function () {
   const STORAGE_KEY = "wc2026_predictions";
+  const MATCH_CACHE_KEY = "wc2026_matches_cache";
+  const MATCH_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
   let lastMatchesMeta = { source: "unknown" };
+  let matchRefreshPromise = null;
 
   const teamCountryCodes = {
     Algeria: "dz",
@@ -347,24 +350,100 @@
     }
   }
 
-  async function fetchMatches(options = {}) {
+  function readCachedMatches() {
     try {
-      const refreshQuery = options.refresh ? `?refresh=1&t=${Date.now()}` : "";
-      const payload = await requestJson(`/api/matches${refreshQuery}`, { cache: "no-store" });
-      if (Array.isArray(payload)) {
-        lastMatchesMeta = { source: "api" };
-        return payload;
-      }
+      const cached = JSON.parse(localStorage.getItem(MATCH_CACHE_KEY) || "null");
+      if (!cached?.matches?.length) return null;
+      return cached;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeCachedMatches(matches, meta) {
+    try {
+      localStorage.setItem(
+        MATCH_CACHE_KEY,
+        JSON.stringify({
+          matches,
+          meta,
+          cachedAt: Date.now(),
+        })
+      );
+    } catch (error) {
+      // Cache writes can fail in private mode or storage pressure; live data still works.
+    }
+  }
+
+  function applyMatchesPayload(payload, cacheStatus = "") {
+    if (Array.isArray(payload)) {
+      lastMatchesMeta = { source: "api", cacheStatus };
+      writeCachedMatches(payload, lastMatchesMeta);
+      return payload;
+    }
+
+    lastMatchesMeta = {
+      source: payload.source || "unknown",
+      fallbackReason: payload.fallbackReason || "",
+      totalFixtures: payload.totalFixtures,
+      knockoutFixtures: payload.knockoutFixtures,
+      cacheStatus: payload.cacheStatus || cacheStatus,
+    };
+    const matches = payload.matches || fallbackMatches;
+    writeCachedMatches(matches, lastMatchesMeta);
+    return matches;
+  }
+
+  async function fetchMatchesFromNetwork(refresh = false) {
+    const refreshQuery = refresh ? `?refresh=1&t=${Date.now()}` : "";
+    const payload = await requestJson(`/api/matches${refreshQuery}`, { cache: "no-store" });
+    return applyMatchesPayload(payload, refresh ? "manual-refresh" : "");
+  }
+
+  function revalidateMatchesInBackground() {
+    if (matchRefreshPromise) return matchRefreshPromise;
+    matchRefreshPromise = fetchMatchesFromNetwork(false)
+      .then((matches) => {
+        document.dispatchEvent(new CustomEvent("wc:matches-updated", {
+          detail: { matches, meta: getMatchesMeta() },
+        }));
+        return matches;
+      })
+      .catch((error) => {
+        console.warn("Background match refresh failed", error);
+        return null;
+      })
+      .finally(() => {
+        matchRefreshPromise = null;
+      });
+    return matchRefreshPromise;
+  }
+
+  async function fetchMatches(options = {}) {
+    const cached = readCachedMatches();
+    const cacheAge = cached ? Date.now() - Number(cached.cachedAt || 0) : Infinity;
+
+    if (!options.refresh && cached?.matches?.length) {
       lastMatchesMeta = {
-        source: payload.source || "unknown",
-        fallbackReason: payload.fallbackReason || "",
-        totalFixtures: payload.totalFixtures,
-        knockoutFixtures: payload.knockoutFixtures,
-        cacheStatus: payload.cacheStatus || "",
+        ...(cached.meta || {}),
+        cacheStatus: cacheAge <= MATCH_CACHE_MAX_AGE_MS ? "browser-cache" : "browser-stale",
       };
-      return payload.matches || fallbackMatches;
+      revalidateMatchesInBackground();
+      return cached.matches;
+    }
+
+    try {
+      return await fetchMatchesFromNetwork(Boolean(options.refresh));
     } catch (error) {
       console.warn("Using local fallback matches", error);
+      if (cached?.matches?.length) {
+        lastMatchesMeta = {
+          ...(cached.meta || {}),
+          cacheStatus: "browser-stale",
+          fallbackReason: "Showing cached matches while live data is unavailable.",
+        };
+        return cached.matches;
+      }
       lastMatchesMeta = {
         source: "browser-fallback",
         fallbackReason: "Could not reach /api/matches from this page.",

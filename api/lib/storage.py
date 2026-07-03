@@ -96,8 +96,26 @@ def list_predictions():
 
     keys_response = kv_command(["SMEMBERS", PREDICTION_KEYS_SET])
     keys = (keys_response or {}).get("result") or []
+    selected_keys = keys[:1000]
     predictions = []
-    for key in keys[:1000]:
+
+    if selected_keys:
+        try:
+            values = (kv_command(["MGET", *selected_keys]) or {}).get("result") or []
+        except Exception:
+            values = []
+
+        if values:
+            for value in values:
+                if not value:
+                    continue
+                try:
+                    predictions.append(json.loads(value))
+                except json.JSONDecodeError:
+                    continue
+            return sorted(predictions, key=lambda row: row.get("submittedAt", ""), reverse=True)
+
+    for key in selected_keys:
         item = kv_command(["GET", key])
         value = (item or {}).get("result")
         if not value:
@@ -288,15 +306,32 @@ def list_users(include_private=False):
     if is_vercel_kv_configured():
         keys_response = kv_command(["SMEMBERS", USER_KEYS_SET])
         keys = (keys_response or {}).get("result") or []
-        for key in keys[:2000]:
-            item = kv_command(["GET", key])
-            value = (item or {}).get("result")
-            if not value:
-                continue
+        selected_keys = keys[:2000]
+        values = []
+        if selected_keys:
             try:
-                users.append(json.loads(value))
-            except json.JSONDecodeError:
-                continue
+                values = (kv_command(["MGET", *selected_keys]) or {}).get("result") or []
+            except Exception:
+                values = []
+
+        if values:
+            for value in values:
+                if not value:
+                    continue
+                try:
+                    users.append(json.loads(value))
+                except json.JSONDecodeError:
+                    continue
+        else:
+            for key in selected_keys:
+                item = kv_command(["GET", key])
+                value = (item or {}).get("result")
+                if not value:
+                    continue
+                try:
+                    users.append(json.loads(value))
+                except json.JSONDecodeError:
+                    continue
     else:
         users = read_local_users()
 

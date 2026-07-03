@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
   if (!WCAuth.requireAuth()) return;
 
-  const state = { overall: [], query: "", sort: "points" };
+  const state = { overall: [], query: "", sort: "points", predictions: [], users: [] };
   const top10El = document.querySelector("[data-top10]");
   const overallEl = document.querySelector("[data-overall]");
   const searchInput = document.querySelector("[data-leaderboard-search]");
@@ -18,11 +18,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   ]);
   const localPredictions = WCApp.getSavedPredictions();
   const predictions = mergePredictions(serverPredictions, localPredictions);
+  state.predictions = predictions;
+  state.users = sharedUsers;
   state.overall = sharedUsers.length || predictions.length
     ? WCApp.buildLeaderboardFromPredictions(predictions, matches, sharedUsers)
     : payload.overall;
   renderTop10(top10El, state.overall.slice(0, 10));
   renderOverall(overallEl, state);
+
+  document.addEventListener("wc:matches-updated", (event) => {
+    if (!Array.isArray(event.detail?.matches) || (!state.users.length && !state.predictions.length)) return;
+    state.overall = WCApp.buildLeaderboardFromPredictions(state.predictions, event.detail.matches, state.users);
+    renderTop10(top10El, state.overall.slice(0, 10));
+    renderOverall(overallEl, state);
+  });
 
   searchInput.addEventListener("input", () => {
     state.query = searchInput.value.trim().toLowerCase();

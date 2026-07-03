@@ -11,6 +11,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadDashboardMatches(state);
 
+  document.addEventListener("wc:matches-updated", (event) => {
+    if (!Array.isArray(event.detail?.matches)) return;
+    state.matches = event.detail.matches;
+    renderDataNotice(false);
+    renderDashboard(state.matches);
+  });
+
   refreshButton?.addEventListener("click", async () => {
     refreshButton.disabled = true;
     refreshButton.textContent = "Refreshing...";

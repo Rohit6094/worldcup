@@ -10,6 +10,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadMatchesPageData(state, container, stageFilter);
 
+  document.addEventListener("wc:matches-updated", (event) => {
+    if (!Array.isArray(event.detail?.matches)) return;
+    state.matches = event.detail.matches;
+    renderDataNotice(false);
+    populateStageFilter(stageFilter, state.matches);
+    if (state.stage !== "all" && !state.matches.some((match) => match.stage === state.stage)) {
+      state.stage = "all";
+    }
+    stageFilter.value = state.stage;
+    renderMatchesPage(container, state);
+  });
+
   stageFilter.addEventListener("change", () => {
     state.stage = stageFilter.value;
     renderMatchesPage(container, state);
