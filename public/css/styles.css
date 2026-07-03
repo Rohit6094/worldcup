@@ -1056,14 +1056,14 @@ main {
 .hero-leader-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   border: 1px solid rgba(212, 212, 216, 0.82);
   border-radius: var(--radius);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 244, 245, 0.78)),
     var(--surface-soft);
-  padding: 10px;
+  padding: 8px 10px;
 }
 
 .hero-leader-row strong,
@@ -1074,24 +1074,32 @@ main {
 .hero-leader-row strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 0.86rem;
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .hero-leader-row div span {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
 }
 
 .hero-leader-row b {
-  min-width: 38px;
+  min-width: 32px;
   border-radius: 999px;
   background: #27272a;
   color: #ffffff;
-  font-size: 0.92rem;
-  padding: 6px 8px;
+  font-size: 0.78rem;
+  padding: 5px 7px;
   text-align: center;
+}
+
+.hero-leader-row .rank-chip {
+  min-height: 26px;
+  font-size: 0.72rem;
+  padding: 4px 8px;
 }
 
 .mini-loading,
