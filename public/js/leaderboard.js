@@ -8,9 +8,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   top10El.innerHTML = `<div class="loading-card">Loading leaderboard...</div>`;
   overallEl.innerHTML = `<div class="loading-card">Loading rankings...</div>`;
 
-  const payload = await WCApp.fetchLeaderboard();
-  state.overall = payload.overall;
-  renderTop10(top10El, payload.top10);
+  const [payload, matches, serverPredictions] = await Promise.all([
+    WCApp.fetchLeaderboard(),
+    WCApp.fetchMatches(),
+    WCApp.fetchPredictions(),
+  ]);
+  const localPredictions = WCApp.getSavedPredictions();
+  const predictions = mergePredictions(serverPredictions, localPredictions);
+  const localUsers = WCAuth.getUsers();
+  state.overall = localUsers.length || predictions.length
+    ? WCApp.buildLeaderboardFromPredictions(predictions, matches, localUsers)
+    : payload.overall;
+  renderTop10(top10El, state.overall.slice(0, 10));
   renderOverall(overallEl, state);
 
   searchInput.addEventListener("input", () => {
@@ -23,7 +32,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+function mergePredictions(primary, fallback) {
+  const map = new Map();
+  [...fallback, ...primary].forEach((prediction) => {
+    const key = `${prediction.userId || prediction.userEmail || prediction.displayName}:${prediction.matchId}`;
+    map.set(key, prediction);
+  });
+  return Array.from(map.values());
+}
+
 function renderTop10(container, rows) {
+  if (!rows.length) {
+    container.innerHTML = `<div class="empty-card">No leaderboard records yet. Names will appear after users submit predictions.</div>`;
+    return;
+  }
   container.innerHTML = rows
     .map((row) => `
       <article class="leader-card rank-${row.rank <= 3 ? row.rank : "standard"}">

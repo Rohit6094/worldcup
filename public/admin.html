@@ -18,6 +18,7 @@
           <a href="index.html">Dashboard</a>
           <a href="matches.html">Matches</a>
           <a href="leaderboard.html">Leaderboard</a>
+          <a href="points.html">Points</a>
           <a class="active" href="admin.html">Admin</a>
           <span class="auth-nav" data-auth-nav></span>
         </nav>
@@ -45,9 +46,40 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Submissions</p>
-              <h2>Saved Predictions</h2>
+              <h2>Prediction CRUD</h2>
             </div>
           </div>
+          <form class="admin-form" data-prediction-form-admin>
+            <input type="hidden" name="editingKey">
+            <h3 data-prediction-form-title>Create Prediction</h3>
+            <div class="admin-form-grid">
+              <label>
+                User
+                <select name="userId" data-prediction-user required></select>
+              </label>
+              <label>
+                Match
+                <select name="matchId" data-prediction-match required></select>
+              </label>
+              <label>
+                Predicted winner
+                <input type="text" name="predictedWinner" required>
+              </label>
+              <label>
+                Home score
+                <input type="number" name="homeScore" min="0" step="1" required>
+              </label>
+              <label>
+                Away score
+                <input type="number" name="awayScore" min="0" step="1" required>
+              </label>
+            </div>
+            <p class="form-error" data-form-error role="alert"></p>
+            <div class="card-actions">
+              <button class="btn btn-primary" type="submit">Save Prediction</button>
+              <button class="btn btn-ghost" type="button" data-reset-prediction-form>Reset</button>
+            </div>
+          </form>
           <div data-admin-predictions></div>
         </div>
       </section>
@@ -57,9 +89,39 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Accounts</p>
-              <h2>Local Users</h2>
+              <h2>User CRUD</h2>
             </div>
           </div>
+          <form class="admin-form" data-user-form>
+            <input type="hidden" name="userId">
+            <h3 data-user-form-title>Create User</h3>
+            <div class="admin-form-grid">
+              <label>
+                Display name
+                <input type="text" name="displayName" maxlength="80" required>
+              </label>
+              <label>
+                Email
+                <input type="email" name="email" required>
+              </label>
+              <label>
+                Role
+                <select name="role" required>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label>
+                <span data-user-password-label>Temporary password</span>
+                <input type="password" name="password" minlength="10" autocomplete="new-password">
+              </label>
+            </div>
+            <p class="form-error" data-form-error role="alert"></p>
+            <div class="card-actions">
+              <button class="btn btn-primary" type="submit">Save User</button>
+              <button class="btn btn-ghost" type="button" data-reset-user-form>Reset</button>
+            </div>
+          </form>
           <div data-admin-users></div>
         </div>
       </section>

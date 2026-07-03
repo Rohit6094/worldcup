@@ -15,6 +15,11 @@ def prediction_key(prediction):
     return f"wc2026:prediction:{user_id}:{prediction['matchId']}"
 
 
+def prediction_key_from_parts(match_id, user_id="", user_email=""):
+    user_key = user_id or user_email or "anonymous"
+    return f"wc2026:prediction:{user_key}:{match_id}"
+
+
 def save_prediction(prediction):
     saved = {
         **prediction,
@@ -49,6 +54,16 @@ def list_predictions():
         except json.JSONDecodeError:
             continue
     return sorted(predictions, key=lambda row: row.get("submittedAt", ""), reverse=True)
+
+
+def delete_prediction(match_id, user_id="", user_email=""):
+    if not is_vercel_kv_configured():
+        return {"deleted": False, "storage": "none"}
+
+    key = prediction_key_from_parts(match_id, user_id, user_email)
+    kv_command(["DEL", key])
+    kv_command(["SREM", PREDICTION_KEYS_SET, key])
+    return {"deleted": True, "storage": "vercel-kv", "key": key}
 
 
 def append_prediction_to_google_sheets(prediction):

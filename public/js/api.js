@@ -277,28 +277,7 @@
     },
   ];
 
-  const fallbackLeaderboard = [
-    { rank: 1, displayName: "Alex Morgan", points: 51, correctWinners: 18, exactScores: 5, totalPredictions: 24 },
-    { rank: 2, displayName: "Riley Chen", points: 49, correctWinners: 17, exactScores: 5, totalPredictions: 23 },
-    { rank: 3, displayName: "Sam Rivera", points: 44, correctWinners: 16, exactScores: 4, totalPredictions: 22 },
-    { rank: 4, displayName: "Priya Shah", points: 42, correctWinners: 15, exactScores: 4, totalPredictions: 23 },
-    { rank: 5, displayName: "Mateo Silva", points: 40, correctWinners: 14, exactScores: 4, totalPredictions: 21 },
-    { rank: 6, displayName: "Jordan Lee", points: 38, correctWinners: 13, exactScores: 4, totalPredictions: 20 },
-    { rank: 7, displayName: "Nora Patel", points: 37, correctWinners: 14, exactScores: 3, totalPredictions: 22 },
-    { rank: 8, displayName: "Leo Garcia", points: 33, correctWinners: 12, exactScores: 3, totalPredictions: 19 },
-    { rank: 9, displayName: "Maya Brown", points: 31, correctWinners: 11, exactScores: 3, totalPredictions: 19 },
-    { rank: 10, displayName: "Owen Brooks", points: 30, correctWinners: 12, exactScores: 2, totalPredictions: 18 },
-    { rank: 11, displayName: "Ava Wilson", points: 26, correctWinners: 10, exactScores: 2, totalPredictions: 17 },
-    { rank: 12, displayName: "Noah Kim", points: 24, correctWinners: 9, exactScores: 2, totalPredictions: 18 },
-    { rank: 13, displayName: "Isla Thompson", points: 22, correctWinners: 8, exactScores: 2, totalPredictions: 16 },
-    { rank: 14, displayName: "Ethan Davis", points: 21, correctWinners: 9, exactScores: 1, totalPredictions: 16 },
-    { rank: 15, displayName: "Lina Ahmed", points: 19, correctWinners: 8, exactScores: 1, totalPredictions: 15 },
-    { rank: 16, displayName: "Ben Carter", points: 17, correctWinners: 7, exactScores: 1, totalPredictions: 15 },
-    { rank: 17, displayName: "Sofia Rossi", points: 15, correctWinners: 6, exactScores: 1, totalPredictions: 14 },
-    { rank: 18, displayName: "Daniel Park", points: 12, correctWinners: 6, exactScores: 0, totalPredictions: 13 },
-    { rank: 19, displayName: "Grace Miller", points: 10, correctWinners: 5, exactScores: 0, totalPredictions: 12 },
-    { rank: 20, displayName: "Hugo Martin", points: 8, correctWinners: 4, exactScores: 0, totalPredictions: 11 },
-  ];
+  const fallbackLeaderboard = [];
 
   async function requestJson(url, options = {}) {
     const response = await fetch(url, {
@@ -381,6 +360,90 @@
       console.warn("Using local predictions only", error);
       return [];
     }
+  }
+
+  async function deletePrediction(prediction) {
+    try {
+      return await requestJson("/api/predictions", {
+        method: "DELETE",
+        body: JSON.stringify({
+          matchId: prediction.matchId,
+          userId: prediction.userId || "",
+          userEmail: prediction.userEmail || "",
+        }),
+      });
+    } catch (error) {
+      console.warn("Prediction deleted locally only", error);
+      return { success: true, localOnly: true };
+    }
+  }
+
+  function removePredictionLocally(prediction) {
+    const predictions = getSavedPredictions().filter((item) => {
+      const sameUser = (item.userId || item.userEmail || item.displayName) === (prediction.userId || prediction.userEmail || prediction.displayName);
+      return !(sameUser && item.matchId === prediction.matchId);
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(predictions));
+  }
+
+  function scorePrediction(prediction, match) {
+    if (!match || match.status !== "completed") {
+      return { points: 0, correctWinner: false, exactScore: false };
+    }
+    const home = match.score?.home;
+    const away = match.score?.away;
+    const exactScore = Number.isInteger(home) && Number.isInteger(away) && prediction.homeScore === home && prediction.awayScore === away;
+    const correctWinner = Boolean(match.winner && prediction.predictedWinner === match.winner);
+    return {
+      points: (correctWinner ? 2 : 0) + (exactScore ? 3 : 0),
+      correctWinner,
+      exactScore,
+    };
+  }
+
+  function buildPredictionRows(predictions, matches) {
+    const matchesById = new Map(matches.map((match) => [match.id, match]));
+    return predictions.map((prediction) => {
+      const match = matchesById.get(prediction.matchId);
+      const scored = scorePrediction(prediction, match);
+      return { ...prediction, match, ...scored };
+    });
+  }
+
+  function buildLeaderboardFromPredictions(predictions, matches, users = []) {
+    const rows = new Map();
+    users.forEach((user) => {
+      rows.set(user.id, {
+        userId: user.id,
+        displayName: user.displayName,
+        points: 0,
+        correctWinners: 0,
+        exactScores: 0,
+        totalPredictions: 0,
+      });
+    });
+
+    buildPredictionRows(predictions, matches).forEach((prediction) => {
+      const key = prediction.userId || prediction.userEmail || prediction.displayName || "anonymous";
+      const row = rows.get(key) || {
+        userId: prediction.userId || "",
+        displayName: prediction.displayName || prediction.userEmail || "Unknown",
+        points: 0,
+        correctWinners: 0,
+        exactScores: 0,
+        totalPredictions: 0,
+      };
+      row.displayName = row.displayName || prediction.displayName || "Unknown";
+      row.points += prediction.points;
+      row.correctWinners += prediction.correctWinner ? 1 : 0;
+      row.exactScores += prediction.exactScore ? 1 : 0;
+      row.totalPredictions += 1;
+      rows.set(key, row);
+    });
+
+    return Array.from(rows.values())
+      .sort((a, b) => b.points - a.points || b.exactScores - a.exactScores || b.correctWinners - a.correctWinners || a.displayName.localeCompare(b.displayName))
+      .map((row, index) => ({ ...row, rank: index + 1 }));
   }
 
   function getTeamCode(team) {
@@ -661,6 +724,11 @@
     fetchLeaderboard,
     submitPrediction,
     fetchPredictions,
+    deletePrediction,
+    removePredictionLocally,
+    scorePrediction,
+    buildPredictionRows,
+    buildLeaderboardFromPredictions,
     getFlagUrl,
     teamMarkup,
     formatDateTime,

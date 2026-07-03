@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="View World Cup 2026 prediction points.">
+    <title>WC 2026 Predict | Prediction Points</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <a class="logo" href="index.html" aria-label="WC 2026 Predict dashboard">
+          <span class="logo-mark">WC</span>
+          <span>WC 2026 Predict</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="index.html">Dashboard</a>
+          <a href="matches.html">Matches</a>
+          <a href="leaderboard.html">Leaderboard</a>
+          <a class="active" href="points.html">Points</a>
+          <span class="auth-nav" data-auth-nav></span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">View only</p>
+              <h1>Prediction Points</h1>
+            </div>
+            <a class="btn btn-secondary" href="matches.html">Make Predictions</a>
+          </div>
+          <div class="data-notice">Correct winner is 2 points. Exact score is 3 points. No participation or bonus points.</div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Your account</p>
+              <h2>User Specific Predictions</h2>
+            </div>
+          </div>
+          <div data-user-points></div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">All users</p>
+              <h2>Overall Predictions</h2>
+            </div>
+          </div>
+          <div data-overall-points></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/points.js"></script>
+  </body>
+</html>

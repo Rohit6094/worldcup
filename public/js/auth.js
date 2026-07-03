@@ -79,6 +79,60 @@
     return { success: true, user: publicUser(user) };
   }
 
+  async function adminSaveUser({ id, displayName, email, role, password }) {
+    const users = getUsers();
+    const cleanName = String(displayName || "").trim().slice(0, 80);
+    const cleanEmail = normalizeEmail(email);
+    const cleanRole = role === "admin" ? "admin" : "user";
+    if (!cleanName) return { success: false, error: "Display name is required." };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { success: false, error: "Valid email is required." };
+
+    const existing = id ? users.find((user) => user.id === id) : null;
+    const emailTaken = users.some((user) => user.email === cleanEmail && user.id !== id);
+    if (emailTaken) return { success: false, error: "That email is already in use." };
+
+    if (existing) {
+      existing.displayName = cleanName;
+      existing.email = cleanEmail;
+      existing.role = cleanRole;
+      existing.updatedAt = new Date().toISOString();
+      if (password) {
+        const passwordError = validatePassword(password);
+        if (passwordError) return { success: false, error: passwordError };
+        existing.salt = randomSalt();
+        existing.passwordHash = await hashPassword(password, existing.salt);
+      }
+      saveUsers(users);
+      return { success: true, user: publicUser(existing) };
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) return { success: false, error: passwordError };
+    const salt = randomSalt();
+    const user = {
+      id: generateId(),
+      displayName: cleanName,
+      email: cleanEmail,
+      passwordHash: await hashPassword(password, salt),
+      salt,
+      role: cleanRole,
+      createdAt: new Date().toISOString(),
+    };
+    users.push(user);
+    saveUsers(users);
+    return { success: true, user: publicUser(user) };
+  }
+
+  function deleteUser(userId) {
+    const currentUser = getCurrentUser();
+    if (currentUser?.id === userId) {
+      return { success: false, error: "You cannot delete your current admin account." };
+    }
+    const users = getUsers().filter((user) => user.id !== userId);
+    saveUsers(users);
+    return { success: true };
+  }
+
   async function login({ email, password }) {
     const cleanEmail = normalizeEmail(email);
     const users = getUsers();
@@ -185,6 +239,8 @@
   window.WCAuth = {
     ADMIN_INVITE_CODE,
     getUsers,
+    adminSaveUser,
+    deleteUser,
     signUp,
     login,
     logout,

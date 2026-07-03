@@ -1,32 +1,9 @@
-import json
 from http.server import BaseHTTPRequestHandler
-from pathlib import Path
 
 from api.lib.responses import json_response
 from api.lib.scoring import score_prediction
 from api.lib.storage import list_predictions
 from api.matches import get_matches_payload
-
-
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-LEADERBOARD_PATH = DATA_DIR / "mock_leaderboard.json"
-
-
-def read_leaderboard():
-    with LEADERBOARD_PATH.open("r", encoding="utf-8") as file:
-        records = json.load(file)
-    sorted_records = sorted(
-        records,
-        key=lambda row: (
-            -int(row.get("points", 0)),
-            -int(row.get("exactScores", 0)),
-            -int(row.get("correctWinners", 0)),
-            str(row.get("displayName", "")).lower(),
-        ),
-    )
-    for index, record in enumerate(sorted_records, start=1):
-        record["rank"] = index
-    return sorted_records
 
 
 def build_leaderboard_from_predictions():
@@ -74,11 +51,7 @@ def build_leaderboard_from_predictions():
 
 def get_leaderboard_payload():
     records = build_leaderboard_from_predictions()
-    source = "predictions"
-    if not records:
-        records = read_leaderboard()
-        source = "mock"
-    return {"source": source, "top10": records[:10], "overall": records}
+    return {"source": "predictions", "top10": records[:10], "overall": records}
 
 
 class handler(BaseHTTPRequestHandler):

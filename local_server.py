@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from api.leaderboard import get_leaderboard_payload
 from api.matches import get_matches_payload
-from api.lib.storage import list_predictions, save_prediction
+from api.lib.storage import delete_prediction, list_predictions, save_prediction
 from api.submit_prediction import validate_prediction
 
 
@@ -44,7 +44,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         super().end_headers()
 
     def send_json(self, status_code, payload):
@@ -89,6 +89,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.path = "/signup.html"
         elif path == "/admin":
             self.path = "/admin.html"
+        elif path == "/points":
+            self.path = "/points.html"
         elif path == "/":
             self.path = "/index.html"
 
@@ -129,6 +131,29 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(503, {"success": False, "error": "Prediction storage is unavailable", "details": str(error)})
             return
         self.send_json(200, {"success": True, "prediction": saved_prediction})
+
+    def do_DELETE(self):
+        path = urlparse(self.path).path.rstrip("/")
+        if path != "/api/predictions":
+            self.send_json(404, {"success": False, "error": "Endpoint not found"})
+            return
+
+        try:
+            content_length = int(self.headers.get("Content-Length", "0") or "0")
+            payload = json.loads(self.rfile.read(content_length).decode("utf-8") or "{}")
+        except Exception:
+            self.send_json(400, {"success": False, "error": "Invalid JSON body"})
+            return
+
+        match_id = str(payload.get("matchId", "")).strip()
+        user_id = str(payload.get("userId", "")).strip()
+        user_email = str(payload.get("userEmail", "")).strip()
+        if not match_id or not (user_id or user_email):
+            self.send_json(400, {"success": False, "error": "matchId and userId or userEmail are required"})
+            return
+
+        result = delete_prediction(match_id, user_id, user_email)
+        self.send_json(200, {"success": True, **result})
 
 
 def main():

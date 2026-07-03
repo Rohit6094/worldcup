@@ -1,16 +1,38 @@
+const adminState = {
+  users: [],
+  predictions: [],
+  matches: [],
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   if (!WCAuth.requireAdmin()) return;
+  await loadAdminData();
+  bindAdminForms();
+  renderAdmin();
+});
 
-  const users = WCAuth.getUsers();
+async function loadAdminData() {
+  adminState.users = WCAuth.getUsers();
   const serverPredictions = await WCApp.fetchPredictions();
   const localPredictions = WCApp.getSavedPredictions();
-  const predictions = mergePredictions(serverPredictions, localPredictions);
-  const matches = await WCApp.fetchMatches();
+  adminState.predictions = mergePredictions(serverPredictions, localPredictions);
+  adminState.matches = await WCApp.fetchMatches();
+}
 
-  renderAdminStats(users, predictions, matches);
-  renderPredictionTable(predictions, matches);
-  renderUserTable(users);
-});
+function bindAdminForms() {
+  document.querySelector("[data-user-form]").addEventListener("submit", saveUserFromForm);
+  document.querySelector("[data-reset-user-form]").addEventListener("click", resetUserForm);
+  document.querySelector("[data-prediction-form-admin]").addEventListener("submit", savePredictionFromForm);
+  document.querySelector("[data-reset-prediction-form]").addEventListener("click", resetPredictionForm);
+}
+
+function renderAdmin() {
+  renderAdminStats();
+  renderUserOptions();
+  renderMatchOptions();
+  renderPredictionTable();
+  renderUserTable();
+}
 
 function mergePredictions(primary, fallback) {
   const map = new Map();
@@ -21,23 +43,184 @@ function mergePredictions(primary, fallback) {
   return Array.from(map.values()).sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
 }
 
-function renderAdminStats(users, predictions, matches) {
+function renderAdminStats() {
   const stats = document.querySelector("[data-admin-stats]");
   stats.innerHTML = `
-    <article class="info-card"><strong>${users.length}</strong><p>Registered users</p></article>
-    <article class="info-card"><strong>${predictions.length}</strong><p>Saved predictions</p></article>
-    <article class="info-card"><strong>${matches.length}</strong><p>Loaded fixtures</p></article>
+    <article class="info-card"><strong>${adminState.users.length}</strong><p>Registered users</p></article>
+    <article class="info-card"><strong>${adminState.predictions.length}</strong><p>Saved predictions</p></article>
+    <article class="info-card"><strong>${adminState.matches.length}</strong><p>Loaded fixtures</p></article>
     <article class="info-card"><strong>2 / 3</strong><p>Winner / exact score points</p></article>
   `;
 }
 
-function renderPredictionTable(predictions, matches) {
-  const container = document.querySelector("[data-admin-predictions]");
-  if (!predictions.length) {
-    container.innerHTML = `<div class="empty-card">No predictions have been submitted in this browser.</div>`;
+function renderUserOptions() {
+  const select = document.querySelector("[data-prediction-user]");
+  select.innerHTML = `<option value="">Select user</option>${adminState.users
+    .map((user) => `<option value="${WCApp.escapeHtml(user.id)}">${WCApp.escapeHtml(user.displayName)} (${WCApp.escapeHtml(user.email)})</option>`)
+    .join("")}`;
+}
+
+function renderMatchOptions() {
+  const select = document.querySelector("[data-prediction-match]");
+  select.innerHTML = `<option value="">Select match</option>${adminState.matches
+    .map((match) => `<option value="${WCApp.escapeHtml(match.id)}">${WCApp.escapeHtml(match.stage)} - ${WCApp.escapeHtml(match.homeTeam.name)} vs ${WCApp.escapeHtml(match.awayTeam.name)}</option>`)
+    .join("")}`;
+}
+
+async function saveUserFromForm(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const result = await WCAuth.adminSaveUser({
+    id: form.elements.userId.value,
+    displayName: form.elements.displayName.value,
+    email: form.elements.email.value,
+    role: form.elements.role.value,
+    password: form.elements.password.value,
+  });
+
+  const errorEl = form.querySelector("[data-form-error]");
+  errorEl.textContent = "";
+  if (!result.success) {
+    errorEl.textContent = result.error;
     return;
   }
 
+  resetUserForm();
+  adminState.users = WCAuth.getUsers();
+  renderAdmin();
+  WCApp.showToast("User saved.");
+}
+
+function resetUserForm() {
+  const form = document.querySelector("[data-user-form]");
+  form.reset();
+  form.elements.userId.value = "";
+  form.querySelector("[data-user-form-title]").textContent = "Create User";
+  form.querySelector("[data-user-password-label]").textContent = "Temporary password";
+  form.querySelector("[data-form-error]").textContent = "";
+}
+
+function editUser(userId) {
+  const user = adminState.users.find((item) => item.id === userId);
+  if (!user) return;
+  const form = document.querySelector("[data-user-form]");
+  form.elements.userId.value = user.id;
+  form.elements.displayName.value = user.displayName;
+  form.elements.email.value = user.email;
+  form.elements.role.value = user.role || "user";
+  form.elements.password.value = "";
+  form.querySelector("[data-user-form-title]").textContent = "Edit User";
+  form.querySelector("[data-user-password-label]").textContent = "New password";
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function removeUser(userId) {
+  if (!confirm("Delete this local user? Their local predictions will also be removed.")) return;
+  const result = WCAuth.deleteUser(userId);
+  if (!result.success) {
+    WCApp.showToast(result.error, "error");
+    return;
+  }
+  const predictions = WCApp.getSavedPredictions().filter((prediction) => prediction.userId !== userId);
+  localStorage.setItem("wc2026_predictions", JSON.stringify(predictions));
+  adminState.users = WCAuth.getUsers();
+  adminState.predictions = adminState.predictions.filter((prediction) => prediction.userId !== userId);
+  renderAdmin();
+  WCApp.showToast("User deleted.");
+}
+
+async function savePredictionFromForm(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const user = adminState.users.find((item) => item.id === form.elements.userId.value);
+  const match = adminState.matches.find((item) => item.id === form.elements.matchId.value);
+  const errorEl = form.querySelector("[data-form-error]");
+  errorEl.textContent = "";
+
+  if (!user || !match) {
+    errorEl.textContent = "Select a user and match.";
+    return;
+  }
+
+  const homeScore = Number(form.elements.homeScore.value);
+  const awayScore = Number(form.elements.awayScore.value);
+  if (!Number.isInteger(homeScore) || homeScore < 0 || !Number.isInteger(awayScore) || awayScore < 0) {
+    errorEl.textContent = "Scores must be non-negative whole numbers.";
+    return;
+  }
+
+  const prediction = {
+    matchId: match.id,
+    userId: user.id,
+    userEmail: user.email,
+    displayName: user.displayName,
+    predictedWinner: form.elements.predictedWinner.value,
+    advancingTeam: "",
+    homeScore,
+    awayScore,
+    submittedAt: new Date().toISOString(),
+  };
+
+  if (!prediction.predictedWinner) {
+    errorEl.textContent = "Enter a predicted winner.";
+    return;
+  }
+
+  const result = await WCApp.submitPrediction(prediction);
+  if (!result.success) {
+    errorEl.textContent = result.error || "Prediction could not be saved.";
+    return;
+  }
+
+  WCApp.removePredictionLocally(prediction);
+  const saved = result.prediction || prediction;
+  const current = WCApp.getSavedPredictions();
+  current.push(saved);
+  localStorage.setItem("wc2026_predictions", JSON.stringify(current));
+  adminState.predictions = mergePredictions([saved], adminState.predictions);
+  resetPredictionForm();
+  renderAdmin();
+  WCApp.showToast("Prediction saved.");
+}
+
+function resetPredictionForm() {
+  const form = document.querySelector("[data-prediction-form-admin]");
+  form.reset();
+  form.querySelector("[data-form-error]").textContent = "";
+  form.querySelector("[data-prediction-form-title]").textContent = "Create Prediction";
+}
+
+function editPrediction(index) {
+  const prediction = adminState.predictions[index];
+  if (!prediction) return;
+  const form = document.querySelector("[data-prediction-form-admin]");
+  form.elements.userId.value = prediction.userId || "";
+  form.elements.matchId.value = prediction.matchId || "";
+  form.elements.predictedWinner.value = prediction.predictedWinner || "";
+  form.elements.homeScore.value = prediction.homeScore ?? "";
+  form.elements.awayScore.value = prediction.awayScore ?? "";
+  form.querySelector("[data-prediction-form-title]").textContent = "Edit Prediction";
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function removePrediction(index) {
+  const prediction = adminState.predictions[index];
+  if (!prediction || !confirm("Delete this prediction?")) return;
+  await WCApp.deletePrediction(prediction);
+  WCApp.removePredictionLocally(prediction);
+  adminState.predictions = adminState.predictions.filter((_, itemIndex) => itemIndex !== index);
+  renderAdmin();
+  WCApp.showToast("Prediction deleted.");
+}
+
+function renderPredictionTable() {
+  const container = document.querySelector("[data-admin-predictions]");
+  if (!adminState.predictions.length) {
+    container.innerHTML = `<div class="empty-card">No predictions have been submitted yet.</div>`;
+    return;
+  }
+
+  const rows = WCApp.buildPredictionRows(adminState.predictions, adminState.matches);
   container.innerHTML = `
     <div class="table-wrap">
       <table class="leaderboard-table">
@@ -47,20 +230,24 @@ function renderPredictionTable(predictions, matches) {
             <th>Match</th>
             <th>Winner</th>
             <th>Score</th>
-            <th>Submitted</th>
+            <th>Points</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          ${predictions.map((prediction) => {
-            const match = matches.find((item) => item.id === prediction.matchId);
-            const label = match ? `${match.homeTeam.name} vs ${match.awayTeam.name}` : prediction.matchId;
+          ${rows.map((prediction, index) => {
+            const matchLabel = prediction.match ? `${prediction.match.homeTeam.name} vs ${prediction.match.awayTeam.name}` : prediction.matchId;
             return `
               <tr>
                 <td>${WCApp.escapeHtml(prediction.displayName || prediction.userEmail || "Unknown")}</td>
-                <td>${WCApp.escapeHtml(label)}</td>
+                <td>${WCApp.escapeHtml(matchLabel)}</td>
                 <td>${WCApp.escapeHtml(prediction.predictedWinner)}</td>
                 <td>${prediction.homeScore}-${prediction.awayScore}</td>
-                <td>${WCApp.escapeHtml(WCApp.formatDateTime(prediction.submittedAt))}</td>
+                <td><strong>${prediction.points}</strong></td>
+                <td class="table-actions">
+                  <button class="btn btn-small btn-ghost" type="button" data-edit-prediction="${index}">Edit</button>
+                  <button class="btn btn-small btn-ghost danger-action" type="button" data-delete-prediction="${index}">Delete</button>
+                </td>
               </tr>
             `;
           }).join("")}
@@ -68,11 +255,18 @@ function renderPredictionTable(predictions, matches) {
       </table>
     </div>
   `;
+
+  container.querySelectorAll("[data-edit-prediction]").forEach((button) => {
+    button.addEventListener("click", () => editPrediction(Number(button.dataset.editPrediction)));
+  });
+  container.querySelectorAll("[data-delete-prediction]").forEach((button) => {
+    button.addEventListener("click", () => removePrediction(Number(button.dataset.deletePrediction)));
+  });
 }
 
-function renderUserTable(users) {
+function renderUserTable() {
   const container = document.querySelector("[data-admin-users]");
-  if (!users.length) {
+  if (!adminState.users.length) {
     container.innerHTML = `<div class="empty-card">No local users exist yet.</div>`;
     return;
   }
@@ -86,19 +280,31 @@ function renderUserTable(users) {
             <th>Email</th>
             <th>Role</th>
             <th>Created</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          ${users.map((user) => `
+          ${adminState.users.map((user) => `
             <tr>
               <td>${WCApp.escapeHtml(user.displayName)}</td>
               <td>${WCApp.escapeHtml(user.email)}</td>
               <td>${WCApp.escapeHtml(user.role || "user")}</td>
               <td>${WCApp.escapeHtml(WCApp.formatDateTime(user.createdAt))}</td>
+              <td class="table-actions">
+                <button class="btn btn-small btn-ghost" type="button" data-edit-user="${WCApp.escapeHtml(user.id)}">Edit</button>
+                <button class="btn btn-small btn-ghost danger-action" type="button" data-delete-user="${WCApp.escapeHtml(user.id)}">Delete</button>
+              </td>
             </tr>
           `).join("")}
         </tbody>
       </table>
     </div>
   `;
+
+  container.querySelectorAll("[data-edit-user]").forEach((button) => {
+    button.addEventListener("click", () => editUser(button.dataset.editUser));
+  });
+  container.querySelectorAll("[data-delete-user]").forEach((button) => {
+    button.addEventListener("click", () => removeUser(button.dataset.deleteUser));
+  });
 }

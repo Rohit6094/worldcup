@@ -113,7 +113,7 @@ If `FOOTBALL_DATA_KEY` is missing, the API request fails, or no fixtures are ret
 
 `data/mock_matches.json` and `public/data/mock_matches.json` are refreshed snapshots from football-data.org. The browser uses `public/data/mock_matches.json` as a static fallback if `/api/matches` is unavailable.
 
-Leaderboard data is demo-only and served from `data/mock_leaderboard.json`.
+Leaderboard data is calculated from stored predictions. If no predictions exist yet, the leaderboard returns an empty state instead of fake mock users.
 
 Prediction submissions are validated by `/api/submit_prediction`. If Vercel KV REST variables are configured, predictions are stored server-side. Without KV, the API returns a successful server echo and the browser stores predictions in `localStorage` for local demo use.
 
@@ -159,6 +159,25 @@ WC26-ADMIN-DEMO
 ```
 
 Production accounts need server-side sessions, durable user storage, role checks, rate limiting, password reset, and email verification.
+
+Admin page:
+
+```text
+/admin.html
+```
+
+The admin page supports browser-local CRUD for demo users and prediction CRUD that syncs to Vercel KV when configured. This is an admin UI demo, not production authorization.
+
+Read-only points page:
+
+```text
+/points.html
+```
+
+It shows two sections:
+
+- User Specific Predictions
+- Overall Predictions
 
 ## Scoring
 

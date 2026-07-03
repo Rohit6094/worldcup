@@ -1241,6 +1241,59 @@ main {
   padding: 10px 12px;
 }
 
+.admin-form {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(212, 212, 216, 0.9);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 244, 245, 0.84)),
+    var(--surface);
+  box-shadow: 0 14px 35px rgba(39, 39, 42, 0.08);
+  margin-bottom: 18px;
+  padding: 18px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.admin-form input,
+.admin-form select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #c8c8cf;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #ffffff, #f7f7f8);
+  color: var(--text);
+  padding: 9px 11px;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.danger-action {
+  color: var(--danger);
+}
+
+.danger-action:hover {
+  border-color: rgba(127, 29, 29, 0.35);
+  background: rgba(127, 29, 29, 0.08);
+  color: var(--danger);
+}
+
 .auth-hint,
 .auth-switch {
   color: var(--muted);
@@ -1279,7 +1332,8 @@ main {
   }
 
   .top10-grid,
-  .scoring-grid {
+  .scoring-grid,
+  .admin-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1327,7 +1381,8 @@ main {
   .featured-grid,
   .match-grid,
   .top10-grid,
-  .scoring-grid {
+  .scoring-grid,
+  .admin-form-grid {
     grid-template-columns: 1fr;
   }
 
