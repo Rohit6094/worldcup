@@ -43,8 +43,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadPredictionPoints() {
+  const performanceContainer = document.querySelector("[data-performance-summary]");
   const userContainer = document.querySelector("[data-user-points]");
   const overallContainer = document.querySelector("[data-overall-points]");
+  performanceContainer.innerHTML = `<div class="loading-card">Loading performance...</div>`;
   userContainer.innerHTML = `<div class="loading-card">Loading your predictions...</div>`;
   overallContainer.innerHTML = `<div class="loading-card">Loading all predictions...</div>`;
 
@@ -58,7 +60,9 @@ async function loadPredictionPoints() {
   pointsState.matches = matches;
   pointsState.rows = rows;
 
-  renderUserPredictions(rows, pointsState.currentUser);
+  const userRows = getUserRows(rows, pointsState.currentUser);
+  renderPerformanceSummary(userRows);
+  renderUserPredictions(userRows, pointsState.currentUser);
   renderOverallPredictions(rows);
 }
 
@@ -87,14 +91,51 @@ function ownsPrediction(row, currentUser) {
     .some((value) => userValues.has(String(value).trim().toLowerCase()));
 }
 
-function renderUserPredictions(rows, currentUser) {
+function getUserRows(rows, currentUser) {
+  return rows.filter((row) => ownsPrediction(row, currentUser));
+}
+
+function renderPerformanceSummary(userRows) {
+  const container = document.querySelector("[data-performance-summary]");
+  const totalPredictions = userRows.length;
+  const completedRows = userRows.filter((row) => row.match?.status === "completed");
+  const wins = completedRows.filter((row) => row.correctWinner).length;
+  const losses = completedRows.length - wins;
+  const exactScores = completedRows.filter((row) => row.exactScore).length;
+  const pending = userRows.filter((row) => row.match?.status !== "completed").length;
+  const totalPoints = userRows.reduce((sum, row) => sum + Number(row.points || 0), 0);
+  const accuracy = completedRows.length ? Math.round((wins / completedRows.length) * 100) : 0;
+  const averagePoints = totalPredictions ? (totalPoints / totalPredictions).toFixed(1) : "0.0";
+
+  container.innerHTML = `
+    ${performanceCard("Predictions", totalPredictions, "Total submitted picks")}
+    ${performanceCard("Wins", wins, "Correct advancing winner")}
+    ${performanceCard("Losses", losses, "Completed misses")}
+    ${performanceCard("Exact Scores", exactScores, "Correct winner and score")}
+    ${performanceCard("Total Points", totalPoints, "Leaderboard score")}
+    ${performanceCard("Accuracy", `${accuracy}%`, "Winner accuracy")}
+    ${performanceCard("Pending", pending, "Awaiting match results")}
+    ${performanceCard("Avg Points", averagePoints, "Per prediction")}
+  `;
+}
+
+function performanceCard(label, value, helper) {
+  return `
+    <article class="performance-card">
+      <span>${WCApp.escapeHtml(label)}</span>
+      <strong>${WCApp.escapeHtml(value)}</strong>
+      <p>${WCApp.escapeHtml(helper)}</p>
+    </article>
+  `;
+}
+
+function renderUserPredictions(userRows, currentUser) {
   const container = document.querySelector("[data-user-points]");
   if (!currentUser) {
     container.innerHTML = `<div class="empty-card">Login to view your own prediction points.</div>`;
     return;
   }
 
-  const userRows = rows.filter((row) => ownsPrediction(row, currentUser));
   renderPredictionTable(container, userRows, "You have not submitted predictions yet.", { allowActions: true });
 }
 
