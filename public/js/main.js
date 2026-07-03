@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     state.matches = await WCApp.fetchMatches();
+    renderAuthCallout();
     renderDataNotice();
     renderDashboard(state.matches);
   } catch (error) {
@@ -35,6 +36,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
+function renderAuthCallout() {
+  const callout = document.querySelector("[data-auth-callout]");
+  if (!callout) return;
+  callout.hidden = Boolean(WCAuth.getCurrentUser());
+}
 
 function renderDashboard(matches) {
   const completed = matches

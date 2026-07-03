@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  if (!WCAuth.requireAuth()) return;
+
   const state = { overall: [], query: "", sort: "points" };
   const top10El = document.querySelector("[data-top10]");
   const overallEl = document.querySelector("[data-overall]");

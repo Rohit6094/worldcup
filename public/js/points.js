@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  if (!WCAuth.requireAuth()) return;
+
   const currentUser = WCAuth.getCurrentUser();
   const matches = await WCApp.fetchMatches();
   const serverPredictions = await WCApp.fetchPredictions();

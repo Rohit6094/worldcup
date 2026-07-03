@@ -264,6 +264,40 @@ h3 {
   margin-top: 28px;
 }
 
+.auth-callout {
+  display: grid;
+  gap: 10px;
+  max-width: 620px;
+  border: 1px solid rgba(161, 161, 170, 0.7);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(244, 244, 245, 0.76)),
+    var(--surface-soft);
+  box-shadow: 0 14px 30px rgba(39, 39, 42, 0.08);
+  margin-top: 22px;
+  padding: 15px;
+}
+
+.auth-callout[hidden] {
+  display: none;
+}
+
+.auth-callout strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.auth-callout span {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.auth-callout div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .hero-stats {
   display: grid;
   gap: 12px;
