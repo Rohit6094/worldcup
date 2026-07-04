@@ -123,13 +123,14 @@ function getUserRows(rows, currentUser) {
 
 function renderPerformanceSummary(userRows) {
   const container = document.querySelector("[data-performance-summary]");
-  const totalPredictions = userRows.length;
-  const completedRows = userRows.filter((row) => row.match?.status === "completed");
+  const eligibleRows = userRows.filter((row) => row.scoringEligible);
+  const totalPredictions = eligibleRows.length;
+  const completedRows = eligibleRows.filter((row) => row.match?.status === "completed");
   const wins = completedRows.filter((row) => row.correctWinner).length;
   const losses = completedRows.length - wins;
   const exactScores = completedRows.filter((row) => row.exactScore).length;
-  const pending = userRows.filter((row) => row.match?.status !== "completed").length;
-  const totalPoints = userRows.reduce((sum, row) => sum + Number(row.points || 0), 0);
+  const pending = eligibleRows.filter((row) => row.match?.status !== "completed").length;
+  const totalPoints = eligibleRows.reduce((sum, row) => sum + Number(row.points || 0), 0);
   const accuracy = completedRows.length ? Math.round((wins / completedRows.length) * 100) : 0;
   const averagePoints = totalPredictions ? (totalPoints / totalPredictions).toFixed(1) : "0.0";
 

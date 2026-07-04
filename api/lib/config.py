@@ -12,8 +12,8 @@ FOOTBALL_DATA_BASE_URL = "https://api.football-data.org/v4"
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
 API_FOOTBALL_WORLD_CUP_LEAGUE_ID = "1"
 
-MATCH_CACHE_KEY = "wc2026:matches:v2"
-MATCH_LAST_GOOD_KEY = "wc2026:matches:last-good:v2"
+MATCH_CACHE_KEY = "wc2026:matches:v4"
+MATCH_LAST_GOOD_KEY = "wc2026:matches:last-good:v4"
 
 CORRECT_WINNER_POINTS = 1
 EXACT_SCORE_POINTS = 3

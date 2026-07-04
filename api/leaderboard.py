@@ -43,8 +43,10 @@ def build_leaderboard_from_predictions():
                 "totalPredictions": 0,
             },
         )
-        row["totalPredictions"] += 1
         scored = score_prediction(prediction, matches_by_id.get(prediction.get("matchId")))
+        if not scored.get("scoringEligible"):
+            continue
+        row["totalPredictions"] += 1
         row["points"] += scored["points"]
         if scored["correctWinner"]:
             row["correctWinners"] += 1

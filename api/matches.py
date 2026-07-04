@@ -190,6 +190,7 @@ KNOCKOUT_ORDER = {
     "Final": 6,
 }
 MAX_EVENT_LOOKUPS = 8
+MATCH_DATA_VERSION = 4
 
 # football-data.org can lag on filling teams in later knockout fixtures.
 # These pairs map Round of 16 fixtures to their Round of 32 feeder match ids.
@@ -198,10 +199,10 @@ ROUND_OF_16_FEEDERS = {
     "537375": ("537415", "537416"),
     "537377": ("537423", "537424"),
     "537378": ("537425", "537426"),
-    "537379": ("537428", "537430"),
+    "537379": ("537419", "537420"),
     "537380": ("537421", "537422"),
-    "537381": ("537420", "537419"),
-    "537382": ("537429", "537427"),
+    "537381": ("537427", "537428"),
+    "537382": ("537429", "537430"),
 }
 
 
@@ -347,10 +348,35 @@ def fetch_goals(fixture_id, api_key):
 
 def match_score_value(score, side):
     score = score or {}
-    for key in ("fullTime", "regularTime"):
+    for key in ("regularTime", "fullTime"):
         value = (score.get(key) or {}).get(side)
         if isinstance(value, int):
             return value
+    return None
+
+
+def score_pair(score, key):
+    values = (score or {}).get(key) or {}
+    home = values.get("home")
+    away = values.get("away")
+    if isinstance(home, int) and isinstance(away, int):
+        return home, away
+    return None, None
+
+
+def infer_football_data_winner(score, home_name, away_name):
+    score = score or {}
+    score_winner = score.get("winner")
+    if score_winner == "HOME_TEAM":
+        return home_name
+    if score_winner == "AWAY_TEAM":
+        return away_name
+
+    for score_key in ("fullTime", "penalties", "extraTime"):
+        home_score, away_score = score_pair(score, score_key)
+        if home_score is None or away_score is None or home_score == away_score:
+            continue
+        return home_name if home_score > away_score else away_name
     return None
 
 
@@ -361,14 +387,10 @@ def normalize_football_data_match(item):
     status = normalize_football_data_status(item.get("status"))
     home_name = home_team.get("name") or home_team.get("shortName") or "TBD"
     away_name = away_team.get("name") or away_team.get("shortName") or "TBD"
-    score_winner = score.get("winner")
 
     winner = None
     if status == "completed":
-        if score_winner == "HOME_TEAM":
-            winner = home_name
-        elif score_winner == "AWAY_TEAM":
-            winner = away_name
+        winner = infer_football_data_winner(score, home_name, away_name)
 
     return {
         "id": str(item.get("id") or ""),
@@ -441,7 +463,15 @@ def sorted_matches(matches):
 
 
 def team_is_tbd(team):
-    return not team or (team.get("name") or "TBD") == "TBD"
+    name = str((team or {}).get("name") or "").strip().lower()
+    return (
+        not team
+        or not name
+        or name == "tbd"
+        or "to be" in name
+        or name.startswith("winner")
+        or name.startswith("loser")
+    )
 
 
 def winner_team_from_match(match):
@@ -491,6 +521,7 @@ def fetch_football_data_matches(api_key):
 
     return {
         "source": "football-data.org",
+        "dataVersion": MATCH_DATA_VERSION,
         "apiQuery": {"competition": FOOTBALL_DATA_COMPETITION, "season": WORLD_CUP_SEASON},
         "totalFixtures": len(fixtures),
         "knockoutFixtures": len(knockout_matches),
@@ -518,6 +549,7 @@ def fetch_api_football_matches(api_key):
 
     return {
         "source": "api-football",
+        "dataVersion": MATCH_DATA_VERSION,
         "apiQuery": {"league": WORLD_CUP_LEAGUE_ID, "season": WORLD_CUP_SEASON},
         "totalFixtures": len(fixtures),
         "knockoutFixtures": len(knockout_matches),
@@ -548,6 +580,7 @@ def fetch_matches():
 
     return {
         "source": "mock",
+        "dataVersion": MATCH_DATA_VERSION,
         "fallbackReason": " | ".join(errors),
         "apiQuery": {"competition": FOOTBALL_DATA_COMPETITION, "season": WORLD_CUP_SEASON},
         "matches": read_mock_matches(),
@@ -575,6 +608,7 @@ def get_matches_payload(force_refresh=False):
             last_good = kv_get_json(MATCH_LAST_GOOD_KEY)
             if last_good:
                 last_good["cacheStatus"] = "last-good"
+                last_good["dataVersion"] = MATCH_DATA_VERSION
                 last_good["fallbackReason"] = payload.get("fallbackReason", "Served last known good match data")
                 return last_good
         except Exception:
@@ -604,6 +638,7 @@ class handler(BaseHTTPRequestHandler):
                 200,
                 {
                     "source": "mock",
+                    "dataVersion": MATCH_DATA_VERSION,
                     "fallbackReason": str(error),
                     "apiQuery": {"competition": FOOTBALL_DATA_COMPETITION, "season": WORLD_CUP_SEASON},
                     "matches": read_mock_matches(),

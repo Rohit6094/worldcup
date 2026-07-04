@@ -327,12 +327,12 @@
     "date": "2026-07-03T18:00:00Z",
     "venue": "",
     "city": "",
-    "status": "upcoming",
+    "status": "completed",
     "score": {
-      "home": null,
-      "away": null
+      "home": 1,
+      "away": 1
     },
-    "winner": null,
+    "winner": "Egypt",
     "goals": []
   },
   {
@@ -483,14 +483,14 @@
     "id": "537379",
     "stage": "Round of 16",
     "homeTeam": {
-      "name": "TBD",
-      "code": "",
-      "flag": ""
+      "name": "Portugal",
+      "code": "pt",
+      "flag": "https://flagcdn.com/w40/pt.png"
     },
     "awayTeam": {
-      "name": "TBD",
-      "code": "",
-      "flag": ""
+      "name": "Spain",
+      "code": "es",
+      "flag": "https://flagcdn.com/w40/es.png"
     },
     "date": "2026-07-06T19:00:00Z",
     "venue": "",
@@ -531,14 +531,14 @@
     "id": "537381",
     "stage": "Round of 16",
     "homeTeam": {
-      "name": "Spain",
-      "code": "es",
-      "flag": "https://flagcdn.com/w40/es.png"
+      "name": "Argentina",
+      "code": "ar",
+      "flag": "https://flagcdn.com/w40/ar.png"
     },
     "awayTeam": {
-      "name": "Portugal",
-      "code": "pt",
-      "flag": "https://flagcdn.com/w40/pt.png"
+      "name": "Egypt",
+      "code": "eg",
+      "flag": "https://flagcdn.com/w40/eg.png"
     },
     "date": "2026-07-07T16:00:00Z",
     "venue": "",
@@ -560,9 +560,9 @@
       "flag": "https://flagcdn.com/w40/ch.png"
     },
     "awayTeam": {
-      "name": "TBD",
-      "code": "",
-      "flag": ""
+      "name": "Colombia",
+      "code": "co",
+      "flag": "https://flagcdn.com/w40/co.png"
     },
     "date": "2026-07-07T20:00:00Z",
     "venue": "",

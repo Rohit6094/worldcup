@@ -1,7 +1,8 @@
 (function () {
   const STORAGE_KEY = "wc2026_predictions";
-  const MATCH_CACHE_KEY = "wc2026_matches_cache";
+  const MATCH_CACHE_KEY = "wc2026_matches_cache_v4";
   const MATCH_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+  const SCORING_STAGES = new Set(["Round of 16", "Quarter-finals", "Semi-finals", "Third-place", "Final"]);
   let lastMatchesMeta = { source: "unknown" };
   let matchRefreshPromise = null;
 
@@ -205,52 +206,52 @@
       ],
     },
     {
-      id: "r16-001",
+      id: "537376",
       stage: "Round of 16",
-      homeTeam: { name: "United States", code: "us", flag: "https://flagcdn.com/w40/us.png" },
-      awayTeam: { name: "Brazil", code: "br", flag: "https://flagcdn.com/w40/br.png" },
-      date: "2026-07-03T20:00:00Z",
-      venue: "Levi's Stadium",
-      city: "Santa Clara",
+      homeTeam: { name: "Canada", code: "ca", flag: "https://flagcdn.com/w40/ca.png" },
+      awayTeam: { name: "Morocco", code: "ma", flag: "https://flagcdn.com/w40/ma.png" },
+      date: "2026-07-04T17:00:00Z",
+      venue: "",
+      city: "",
       status: "upcoming",
       score: { home: null, away: null },
       winner: null,
       goals: [],
     },
     {
-      id: "r16-002",
+      id: "537375",
       stage: "Round of 16",
-      homeTeam: { name: "France", code: "fr", flag: "https://flagcdn.com/w40/fr.png" },
-      awayTeam: { name: "England", code: "gb-eng", flag: "https://flagcdn.com/w40/gb-eng.png" },
-      date: "2026-07-04T00:00:00Z",
-      venue: "Gillette Stadium",
-      city: "Foxborough",
+      homeTeam: { name: "Paraguay", code: "py", flag: "https://flagcdn.com/w40/py.png" },
+      awayTeam: { name: "France", code: "fr", flag: "https://flagcdn.com/w40/fr.png" },
+      date: "2026-07-04T21:00:00Z",
+      venue: "",
+      city: "",
       status: "upcoming",
       score: { home: null, away: null },
       winner: null,
       goals: [],
     },
     {
-      id: "r16-003",
-      stage: "Round of 16",
-      homeTeam: { name: "Spain", code: "es", flag: "https://flagcdn.com/w40/es.png" },
-      awayTeam: { name: "Argentina", code: "ar", flag: "https://flagcdn.com/w40/ar.png" },
-      date: "2026-07-04T20:00:00Z",
-      venue: "NRG Stadium",
-      city: "Houston",
-      status: "upcoming",
-      score: { home: null, away: null },
-      winner: null,
-      goals: [],
-    },
-    {
-      id: "r16-004",
+      id: "537379",
       stage: "Round of 16",
       homeTeam: { name: "Portugal", code: "pt", flag: "https://flagcdn.com/w40/pt.png" },
-      awayTeam: { name: "Germany", code: "de", flag: "https://flagcdn.com/w40/de.png" },
-      date: "2026-07-05T00:00:00Z",
-      venue: "Arrowhead Stadium",
-      city: "Kansas City",
+      awayTeam: { name: "Spain", code: "es", flag: "https://flagcdn.com/w40/es.png" },
+      date: "2026-07-06T19:00:00Z",
+      venue: "",
+      city: "",
+      status: "upcoming",
+      score: { home: null, away: null },
+      winner: null,
+      goals: [],
+    },
+    {
+      id: "537381",
+      stage: "Round of 16",
+      homeTeam: { name: "Argentina", code: "ar", flag: "https://flagcdn.com/w40/ar.png" },
+      awayTeam: { name: "Egypt", code: "eg", flag: "https://flagcdn.com/w40/eg.png" },
+      date: "2026-07-07T16:00:00Z",
+      venue: "",
+      city: "",
       status: "upcoming",
       score: { home: null, away: null },
       winner: null,
@@ -521,8 +522,9 @@
   }
 
   function scorePrediction(prediction, match) {
-    if (!match || match.status !== "completed") {
-      return { points: 0, correctWinner: false, exactScore: false };
+    const scoringEligible = Boolean(match && SCORING_STAGES.has(match.stage));
+    if (!scoringEligible || match.status !== "completed") {
+      return { points: 0, correctWinner: false, exactScore: false, scoringEligible };
     }
     const home = match.score?.home;
     const away = match.score?.away;
@@ -533,6 +535,7 @@
       points: exactScore ? 3 : correctWinner ? 1 : 0,
       correctWinner,
       exactScore,
+      scoringEligible,
     };
   }
 
@@ -565,6 +568,7 @@
     });
 
     buildPredictionRows(predictions, matches).forEach((prediction) => {
+      if (!prediction.scoringEligible) return;
       const identities = predictionIdentityValues(prediction);
       const existingKey = identities.map((identity) => identityIndex.get(identity)).find(Boolean);
       const key = existingKey || prediction.userId || prediction.username || prediction.userEmail || prediction.displayName || "anonymous";
