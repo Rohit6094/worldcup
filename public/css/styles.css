@@ -991,6 +991,36 @@ main {
   font-size: 0.78rem;
 }
 
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 244, 245, 0.94)),
+    var(--surface);
+  box-shadow: 0 12px 30px rgba(39, 39, 42, 0.08);
+}
+
+.table-pagination-info,
+.table-pagination-page {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.table-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .table-user,
 .table-match {
   display: inline-block;
@@ -2324,6 +2354,16 @@ main {
   .leaderboard-table th,
   .leaderboard-table td {
     padding: 10px 11px;
+  }
+
+  .table-pagination,
+  .table-pagination-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .table-pagination .btn {
+    width: 100%;
   }
 
   .modal-backdrop {

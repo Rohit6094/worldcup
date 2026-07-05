@@ -5,6 +5,9 @@ const pointsState = {
   rows: [],
   userQuery: "",
   overallQuery: "",
+  userPage: 1,
+  overallPage: 1,
+  pageSize: 10,
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -15,11 +18,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.querySelector("[data-user-prediction-search]")?.addEventListener("input", (event) => {
     pointsState.userQuery = event.target.value.trim().toLowerCase();
+    pointsState.userPage = 1;
     renderUserPredictions(getUserRows(pointsState.rows, pointsState.currentUser), pointsState.currentUser);
   });
 
   document.querySelector("[data-overall-prediction-search]")?.addEventListener("input", (event) => {
     pointsState.overallQuery = event.target.value.trim().toLowerCase();
+    pointsState.overallPage = 1;
     renderOverallPredictions(pointsState.rows);
   });
 
@@ -34,6 +39,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.addEventListener("click", async (event) => {
+    const pageButton = event.target.closest("[data-points-page]");
+    if (pageButton) {
+      const target = pageButton.dataset.pointsPageTarget;
+      const page = Number(pageButton.dataset.pointsPage) || 1;
+      if (target === "user") {
+        pointsState.userPage = page;
+        renderUserPredictions(getUserRows(pointsState.rows, pointsState.currentUser), pointsState.currentUser);
+      }
+      if (target === "overall") {
+        pointsState.overallPage = page;
+        renderOverallPredictions(pointsState.rows);
+      }
+      return;
+    }
+
     const editButton = event.target.closest("[data-edit-own-prediction]");
     if (editButton) {
       const row = pointsState.rows.find((item) => predictionKey(item) === editButton.dataset.editOwnPrediction);
@@ -164,13 +184,19 @@ function renderUserPredictions(userRows, currentUser) {
   }
 
   const filteredRows = filterPredictionRows(userRows, pointsState.userQuery);
-  renderPredictionTable(container, filteredRows, pointsState.userQuery ? "No matching predictions found." : "You have not submitted predictions yet.", { allowActions: true });
+  renderPredictionTable(container, filteredRows, pointsState.userQuery ? "No matching predictions found." : "You have not submitted predictions yet.", {
+    allowActions: true,
+    pageKey: "user",
+  });
 }
 
 function renderOverallPredictions(rows) {
   const container = document.querySelector("[data-overall-points]");
   const filteredRows = filterPredictionRows(rows, pointsState.overallQuery);
-  renderPredictionTable(container, filteredRows, pointsState.overallQuery ? "No matching predictions found." : "No predictions have been submitted yet.", { allowActions: false });
+  renderPredictionTable(container, filteredRows, pointsState.overallQuery ? "No matching predictions found." : "No predictions have been submitted yet.", {
+    allowActions: false,
+    pageKey: "overall",
+  });
 }
 
 function filterPredictionRows(rows, query) {
@@ -207,6 +233,12 @@ function renderPredictionTable(container, rows, emptyMessage, options = {}) {
   }
 
   const allowActions = Boolean(options.allowActions);
+  const pageKey = options.pageKey === "user" ? "user" : "overall";
+  const stateKey = pageKey === "user" ? "userPage" : "overallPage";
+  const page = getPagination(rows.length, pointsState[stateKey], pointsState.pageSize);
+  pointsState[stateKey] = page.current;
+  const pageRows = rows.slice(page.start, page.end);
+
   container.innerHTML = `
     <div class="table-wrap">
       <table class="leaderboard-table">
@@ -223,9 +255,31 @@ function renderPredictionTable(container, rows, emptyMessage, options = {}) {
           </tr>
         </thead>
         <tbody>
-          ${rows.map((row) => renderPredictionRow(row, allowActions)).join("")}
+          ${pageRows.map((row) => renderPredictionRow(row, allowActions)).join("")}
         </tbody>
       </table>
+    </div>
+    ${renderPagination(pageKey, page)}
+  `;
+}
+
+function getPagination(totalRows, requestedPage, pageSize = 10) {
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const current = Math.min(Math.max(Number(requestedPage) || 1, 1), totalPages);
+  const start = (current - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalRows);
+  return { current, totalPages, totalRows, pageSize, start, end };
+}
+
+function renderPagination(pageKey, page) {
+  return `
+    <div class="table-pagination" aria-label="${WCApp.escapeHtml(pageKey)} predictions pagination">
+      <span class="table-pagination-info">Showing ${page.start + 1}-${page.end} of ${page.totalRows}</span>
+      <div class="table-pagination-actions">
+        <button class="btn btn-small btn-ghost" type="button" data-points-page-target="${pageKey}" data-points-page="${page.current - 1}" ${page.current <= 1 ? "disabled" : ""}>Previous</button>
+        <span class="table-pagination-page">Page ${page.current} of ${page.totalPages}</span>
+        <button class="btn btn-small btn-ghost" type="button" data-points-page-target="${pageKey}" data-points-page="${page.current + 1}" ${page.current >= page.totalPages ? "disabled" : ""}>Next</button>
+      </div>
     </div>
   `;
 }

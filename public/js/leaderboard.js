@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
   if (!WCAuth.requireAuth()) return;
 
-  const state = { overall: [], query: "", sort: "points", predictions: [], users: [] };
+  const state = { overall: [], query: "", sort: "points", page: 1, pageSize: 10, predictions: [], users: [] };
   const top10El = document.querySelector("[data-top10]");
   const overallEl = document.querySelector("[data-overall]");
   const searchInput = document.querySelector("[data-leaderboard-search]");
@@ -35,10 +35,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   searchInput.addEventListener("input", () => {
     state.query = searchInput.value.trim().toLowerCase();
+    state.page = 1;
     renderOverall(overallEl, state);
   });
   sortSelect.addEventListener("change", () => {
     state.sort = sortSelect.value;
+    state.page = 1;
+    renderOverall(overallEl, state);
+  });
+
+  overallEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-leaderboard-page]");
+    if (!button) return;
+    state.page = Number(button.dataset.leaderboardPage) || 1;
     renderOverall(overallEl, state);
   });
 });
@@ -92,6 +101,10 @@ function renderOverall(container, state) {
     return;
   }
 
+  const page = getPagination(sorted.length, state.page, state.pageSize);
+  state.page = page.current;
+  const pageRows = sorted.slice(page.start, page.end);
+
   container.innerHTML = `
     <div class="table-wrap">
       <table class="leaderboard-table">
@@ -106,7 +119,7 @@ function renderOverall(container, state) {
           </tr>
         </thead>
         <tbody>
-          ${sorted
+          ${pageRows
             .map((row) => `
               <tr>
                 <td><span class="rank-chip">#${row.rank}</span></td>
@@ -120,6 +133,28 @@ function renderOverall(container, state) {
             .join("")}
         </tbody>
       </table>
+    </div>
+    ${renderPagination("leaderboard", page, "data-leaderboard-page")}
+  `;
+}
+
+function getPagination(totalRows, requestedPage, pageSize = 10) {
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const current = Math.min(Math.max(Number(requestedPage) || 1, 1), totalPages);
+  const start = (current - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalRows);
+  return { current, totalPages, totalRows, pageSize, start, end };
+}
+
+function renderPagination(label, page, attributeName) {
+  return `
+    <div class="table-pagination" aria-label="${WCApp.escapeHtml(label)} pagination">
+      <span class="table-pagination-info">Showing ${page.start + 1}-${page.end} of ${page.totalRows}</span>
+      <div class="table-pagination-actions">
+        <button class="btn btn-small btn-ghost" type="button" ${attributeName}="${page.current - 1}" ${page.current <= 1 ? "disabled" : ""}>Previous</button>
+        <span class="table-pagination-page">Page ${page.current} of ${page.totalPages}</span>
+        <button class="btn btn-small btn-ghost" type="button" ${attributeName}="${page.current + 1}" ${page.current >= page.totalPages ? "disabled" : ""}>Next</button>
+      </div>
     </div>
   `;
 }

@@ -4,6 +4,9 @@ const adminState = {
   matches: [],
   predictionQuery: "",
   userQuery: "",
+  predictionPage: 1,
+  userPage: 1,
+  pageSize: 10,
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -28,10 +31,12 @@ function bindAdminForms() {
   document.querySelector("[data-reset-prediction-form]").addEventListener("click", resetPredictionForm);
   document.querySelector("[data-admin-prediction-search]")?.addEventListener("input", (event) => {
     adminState.predictionQuery = event.target.value.trim().toLowerCase();
+    adminState.predictionPage = 1;
     renderPredictionTable();
   });
   document.querySelector("[data-admin-user-search]")?.addEventListener("input", (event) => {
     adminState.userQuery = event.target.value.trim().toLowerCase();
+    adminState.userPage = 1;
     renderUserTable();
   });
   document.querySelector("[data-download-predictions]")?.addEventListener("click", downloadPredictions);
@@ -394,6 +399,10 @@ function renderPredictionTable() {
     return;
   }
 
+  const page = getPagination(rows.length, adminState.predictionPage, adminState.pageSize);
+  adminState.predictionPage = page.current;
+  const pageRows = rows.slice(page.start, page.end);
+
   container.innerHTML = `
     <div class="table-wrap">
       <table class="leaderboard-table">
@@ -410,7 +419,7 @@ function renderPredictionTable() {
           </tr>
         </thead>
         <tbody>
-          ${rows.map((prediction) => {
+          ${pageRows.map((prediction) => {
             const matchLabel = prediction.match ? `${prediction.match.homeTeam.name} vs ${prediction.match.awayTeam.name}` : prediction.matchId;
             const pointsClass = Number(prediction.points || 0) > 0 ? "points-positive" : "points-muted";
             return `
@@ -432,6 +441,7 @@ function renderPredictionTable() {
         </tbody>
       </table>
     </div>
+    ${renderPagination("predictions", page, "data-admin-prediction-page")}
   `;
 
   container.querySelectorAll("[data-edit-prediction]").forEach((button) => {
@@ -439,6 +449,12 @@ function renderPredictionTable() {
   });
   container.querySelectorAll("[data-delete-prediction]").forEach((button) => {
     button.addEventListener("click", () => removePrediction(Number(button.dataset.deletePrediction)));
+  });
+  container.querySelectorAll("[data-admin-prediction-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      adminState.predictionPage = Number(button.dataset.adminPredictionPage) || 1;
+      renderPredictionTable();
+    });
   });
 }
 
@@ -449,6 +465,10 @@ function renderUserTable() {
     container.innerHTML = `<div class="empty-card">${adminState.userQuery ? "No users match your search." : "No users exist yet."}</div>`;
     return;
   }
+
+  const page = getPagination(users.length, adminState.userPage, adminState.pageSize);
+  adminState.userPage = page.current;
+  const pageUsers = users.slice(page.start, page.end);
 
   container.innerHTML = `
     <div class="table-wrap">
@@ -463,7 +483,7 @@ function renderUserTable() {
           </tr>
         </thead>
         <tbody>
-          ${users.map((user) => `
+          ${pageUsers.map((user) => `
             <tr>
               <td><span class="table-user">${WCApp.escapeHtml(user.displayName)}</span></td>
               <td>${WCApp.escapeHtml(user.username || user.email || "")}</td>
@@ -478,6 +498,7 @@ function renderUserTable() {
         </tbody>
       </table>
     </div>
+    ${renderPagination("users", page, "data-admin-user-page")}
   `;
 
   container.querySelectorAll("[data-edit-user]").forEach((button) => {
@@ -486,4 +507,31 @@ function renderUserTable() {
   container.querySelectorAll("[data-delete-user]").forEach((button) => {
     button.addEventListener("click", () => removeUser(button.dataset.deleteUser));
   });
+  container.querySelectorAll("[data-admin-user-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      adminState.userPage = Number(button.dataset.adminUserPage) || 1;
+      renderUserTable();
+    });
+  });
+}
+
+function getPagination(totalRows, requestedPage, pageSize = 10) {
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const current = Math.min(Math.max(Number(requestedPage) || 1, 1), totalPages);
+  const start = (current - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalRows);
+  return { current, totalPages, totalRows, pageSize, start, end };
+}
+
+function renderPagination(label, page, attributeName) {
+  return `
+    <div class="table-pagination" aria-label="${WCApp.escapeHtml(label)} pagination">
+      <span class="table-pagination-info">Showing ${page.start + 1}-${page.end} of ${page.totalRows}</span>
+      <div class="table-pagination-actions">
+        <button class="btn btn-small btn-ghost" type="button" ${attributeName}="${page.current - 1}" ${page.current <= 1 ? "disabled" : ""}>Previous</button>
+        <span class="table-pagination-page">Page ${page.current} of ${page.totalPages}</span>
+        <button class="btn btn-small btn-ghost" type="button" ${attributeName}="${page.current + 1}" ${page.current >= page.totalPages ? "disabled" : ""}>Next</button>
+      </div>
+    </div>
+  `;
 }

@@ -9,7 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   setLoading(previousEl);
   setLoading(upcomingEl);
   setLoading(featuredEl);
-  setHeroLeaderboardLoading(heroLeaderboardEl);
+  renderAuthCallout();
+  if (WCAuth.getCurrentUser()) setHeroLeaderboardLoading(heroLeaderboardEl);
 
   await Promise.all([
     loadDashboardMatches(state),
@@ -79,6 +80,10 @@ async function loadDashboardMatches(state, refresh = false) {
 
 async function loadHeroLeaderboard(container, matches = null) {
   if (!container) return;
+  if (!WCAuth.getCurrentUser()) {
+    container.innerHTML = "";
+    return;
+  }
   try {
     const payload = await WCApp.fetchComputedLeaderboard({ matches });
     renderHeroLeaderboard(container, (payload.overall || payload.top10 || []).slice(0, 3));
@@ -114,8 +119,10 @@ function renderHeroLeaderboard(container, rows) {
 
 function renderAuthCallout() {
   const callout = document.querySelector("[data-auth-callout]");
-  if (!callout) return;
-  callout.hidden = Boolean(WCAuth.getCurrentUser());
+  const leaderboardPanel = document.querySelector("[data-hero-leaderboard-panel]");
+  const isLoggedIn = Boolean(WCAuth.getCurrentUser());
+  if (callout) callout.hidden = isLoggedIn;
+  if (leaderboardPanel) leaderboardPanel.hidden = !isLoggedIn;
 }
 
 function renderDashboard(matches) {
