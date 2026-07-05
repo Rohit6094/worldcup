@@ -2,6 +2,8 @@ const adminState = {
   users: [],
   predictions: [],
   matches: [],
+  predictionQuery: "",
+  userQuery: "",
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -24,6 +26,16 @@ function bindAdminForms() {
   document.querySelector("[data-reset-user-form]").addEventListener("click", resetUserForm);
   document.querySelector("[data-prediction-form-admin]").addEventListener("submit", savePredictionFromForm);
   document.querySelector("[data-reset-prediction-form]").addEventListener("click", resetPredictionForm);
+  document.querySelector("[data-admin-prediction-search]")?.addEventListener("input", (event) => {
+    adminState.predictionQuery = event.target.value.trim().toLowerCase();
+    renderPredictionTable();
+  });
+  document.querySelector("[data-admin-user-search]")?.addEventListener("input", (event) => {
+    adminState.userQuery = event.target.value.trim().toLowerCase();
+    renderUserTable();
+  });
+  document.querySelector("[data-download-predictions]")?.addEventListener("click", downloadPredictions);
+  document.querySelector("[data-download-users]")?.addEventListener("click", downloadUsers);
 }
 
 function renderAdmin() {
@@ -236,6 +248,116 @@ function resetPredictionForm() {
   form.querySelector("[data-prediction-form-title]").textContent = "Create Prediction";
 }
 
+function adminPredictionSearchText(row) {
+  const match = row.match;
+  return [
+    row.displayName,
+    row.username,
+    row.userEmail,
+    row.predictedWinner,
+    row.advancingTeam,
+    row.homeScore,
+    row.awayScore,
+    row.points,
+    row.matchId,
+    match?.stage,
+    match?.homeTeam?.name,
+    match?.awayTeam?.name,
+    match?.status,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .join(" ")
+    .toLowerCase();
+}
+
+function adminUserSearchText(user) {
+  return [user.displayName, user.username, user.email, user.role, user.createdAt]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function filteredPredictionRows() {
+  const rows = WCApp.buildPredictionRows(adminState.predictions, adminState.matches)
+    .map((row, index) => ({ ...row, _adminIndex: index }));
+  if (!adminState.predictionQuery) return rows;
+  return rows.filter((row) => adminPredictionSearchText(row).includes(adminState.predictionQuery));
+}
+
+function filteredUsers() {
+  if (!adminState.userQuery) return adminState.users;
+  return adminState.users.filter((user) => adminUserSearchText(user).includes(adminState.userQuery));
+}
+
+function csvEscape(value) {
+  const text = String(value ?? "");
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function downloadCsv(filename, headers, rows) {
+  const lines = [
+    headers.map(csvEscape).join(","),
+    ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(",")),
+  ];
+  const blob = new Blob([`\uFEFF${lines.join("\n")}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function downloadPredictions() {
+  const rows = filteredPredictionRows().map((row) => ({
+    User: row.displayName || row.username || row.userEmail || "Unknown",
+    Username: row.username || row.userEmail || "",
+    Match: row.match ? `${row.match.homeTeam?.name || "TBD"} vs ${row.match.awayTeam?.name || "TBD"}` : row.matchId,
+    Stage: row.match?.stage || "",
+    Status: WCApp.matchStatusLabel(row.match?.status),
+    "Predicted winner": row.predictedWinner || "",
+    "Advancing team": row.advancingTeam || "",
+    Score: WCApp.predictionScoreText(row),
+    Points: row.points || 0,
+    "Scoring eligible": row.scoringEligible ? "Yes" : "No",
+    Submitted: row.submittedAt || row.savedAt || "",
+  }));
+  downloadCsv(`wc-predictions-${new Date().toISOString().slice(0, 10)}.csv`, [
+    "User",
+    "Username",
+    "Match",
+    "Stage",
+    "Status",
+    "Predicted winner",
+    "Advancing team",
+    "Score",
+    "Points",
+    "Scoring eligible",
+    "Submitted",
+  ], rows);
+}
+
+function downloadUsers() {
+  const rows = filteredUsers().map((user) => ({
+    Name: user.displayName || "",
+    Username: user.username || user.email || "",
+    Role: user.role || "user",
+    Created: user.createdAt || "",
+    Updated: user.updatedAt || "",
+    "Last login": user.lastLoginAt || "",
+  }));
+  downloadCsv(`wc-users-${new Date().toISOString().slice(0, 10)}.csv`, [
+    "Name",
+    "Username",
+    "Role",
+    "Created",
+    "Updated",
+    "Last login",
+  ], rows);
+}
+
 function editPrediction(index) {
   const prediction = adminState.predictions[index];
   if (!prediction) return;
@@ -266,12 +388,12 @@ async function removePrediction(index) {
 
 function renderPredictionTable() {
   const container = document.querySelector("[data-admin-predictions]");
-  if (!adminState.predictions.length) {
-    container.innerHTML = `<div class="empty-card">No predictions have been submitted yet.</div>`;
+  const rows = filteredPredictionRows();
+  if (!rows.length) {
+    container.innerHTML = `<div class="empty-card">${adminState.predictionQuery ? "No predictions match your search." : "No predictions have been submitted yet."}</div>`;
     return;
   }
 
-  const rows = WCApp.buildPredictionRows(adminState.predictions, adminState.matches);
   container.innerHTML = `
     <div class="table-wrap">
       <table class="leaderboard-table">
@@ -283,23 +405,26 @@ function renderPredictionTable() {
             <th>Advancing</th>
             <th>Score</th>
             <th>Points</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.map((prediction, index) => {
+          ${rows.map((prediction) => {
             const matchLabel = prediction.match ? `${prediction.match.homeTeam.name} vs ${prediction.match.awayTeam.name}` : prediction.matchId;
+            const pointsClass = Number(prediction.points || 0) > 0 ? "points-positive" : "points-muted";
             return `
               <tr>
-                <td>${WCApp.escapeHtml(prediction.displayName || prediction.username || prediction.userEmail || "Unknown")}</td>
-                <td>${WCApp.escapeHtml(matchLabel)}</td>
-                <td>${WCApp.escapeHtml(prediction.predictedWinner)}</td>
+                <td><span class="table-user">${WCApp.escapeHtml(prediction.displayName || prediction.username || prediction.userEmail || "Unknown")}</span></td>
+                <td><span class="table-match">${WCApp.escapeHtml(matchLabel)}</span><small>${WCApp.escapeHtml(prediction.match?.stage || "Fixture")}</small></td>
+                <td><span class="table-pill">${WCApp.escapeHtml(prediction.predictedWinner)}</span></td>
                 <td>${WCApp.escapeHtml(prediction.advancingTeam || "TBD")}</td>
                 <td>${WCApp.escapeHtml(WCApp.predictionScoreText(prediction))}</td>
-                <td><strong>${prediction.points}</strong></td>
+                <td><strong class="${pointsClass}">${prediction.points}</strong></td>
+                <td><span class="status-dot ${prediction.scoringEligible ? "is-good" : "is-muted"}">${prediction.scoringEligible ? "Scored round" : "Not scored"}</span><small>${WCApp.escapeHtml(WCApp.matchStatusLabel(prediction.match?.status))}</small></td>
                 <td class="table-actions">
-                  <button class="btn btn-small btn-ghost" type="button" data-edit-prediction="${index}">Edit</button>
-                  <button class="btn btn-small btn-ghost danger-action" type="button" data-delete-prediction="${index}">Delete</button>
+                  <button class="btn btn-small btn-ghost" type="button" data-edit-prediction="${prediction._adminIndex}">Edit</button>
+                  <button class="btn btn-small btn-ghost danger-action" type="button" data-delete-prediction="${prediction._adminIndex}">Delete</button>
                 </td>
               </tr>
             `;
@@ -319,8 +444,9 @@ function renderPredictionTable() {
 
 function renderUserTable() {
   const container = document.querySelector("[data-admin-users]");
-  if (!adminState.users.length) {
-    container.innerHTML = `<div class="empty-card">No users exist yet.</div>`;
+  const users = filteredUsers();
+  if (!users.length) {
+    container.innerHTML = `<div class="empty-card">${adminState.userQuery ? "No users match your search." : "No users exist yet."}</div>`;
     return;
   }
 
@@ -337,11 +463,11 @@ function renderUserTable() {
           </tr>
         </thead>
         <tbody>
-          ${adminState.users.map((user) => `
+          ${users.map((user) => `
             <tr>
-              <td>${WCApp.escapeHtml(user.displayName)}</td>
+              <td><span class="table-user">${WCApp.escapeHtml(user.displayName)}</span></td>
               <td>${WCApp.escapeHtml(user.username || user.email || "")}</td>
-              <td>${WCApp.escapeHtml(user.role || "user")}</td>
+              <td><span class="table-pill">${WCApp.escapeHtml(user.role || "user")}</span></td>
               <td>${WCApp.escapeHtml(WCApp.formatDateTime(user.createdAt))}</td>
               <td class="table-actions">
                 <button class="btn btn-small btn-ghost" type="button" data-edit-user="${WCApp.escapeHtml(user.id)}">Edit</button>

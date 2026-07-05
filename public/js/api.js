@@ -1,6 +1,6 @@
 (function () {
   const STORAGE_KEY = "wc2026_predictions";
-  const MATCH_CACHE_KEY = "wc2026_matches_cache_v4";
+  const MATCH_CACHE_KEY = "wc2026_matches_cache_v5";
   const MATCH_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
   const SCORING_STAGES = new Set(["Round of 16", "Quarter-finals", "Semi-finals", "Third-place", "Final"]);
   let lastMatchesMeta = { source: "unknown" };
@@ -213,9 +213,9 @@
       date: "2026-07-04T17:00:00Z",
       venue: "",
       city: "",
-      status: "upcoming",
-      score: { home: null, away: null },
-      winner: null,
+      status: "completed",
+      score: { home: 0, away: 3 },
+      winner: "Morocco",
       goals: [],
     },
     {
@@ -226,9 +226,9 @@
       date: "2026-07-04T21:00:00Z",
       venue: "",
       city: "",
-      status: "upcoming",
-      score: { home: null, away: null },
-      winner: null,
+      status: "completed",
+      score: { home: 0, away: 1 },
+      winner: "France",
       goals: [],
     },
     {
@@ -521,6 +521,39 @@
     document.dispatchEvent(new CustomEvent("wc:predictions-changed"));
   }
 
+  function mergePredictions(primary = [], fallback = []) {
+    const merged = [];
+    [...fallback, ...primary].forEach((prediction) => {
+      const existingIndex = merged.findIndex((item) => samePredictionRecord(item, prediction));
+      if (existingIndex >= 0) {
+        merged[existingIndex] = prediction;
+        return;
+      }
+      merged.push(prediction);
+    });
+    return merged.sort((a, b) => new Date(b.submittedAt || b.savedAt || 0) - new Date(a.submittedAt || a.savedAt || 0));
+  }
+
+  async function fetchComputedLeaderboard(options = {}) {
+    const [fallbackPayload, matches, serverPredictions, users] = await Promise.all([
+      fetchLeaderboard().catch(() => ({ top10: [], overall: [] })),
+      options.matches ? Promise.resolve(options.matches) : fetchMatches({ refresh: Boolean(options.refreshMatches) }),
+      fetchPredictions().catch(() => []),
+      window.WCAuth?.fetchUsers ? window.WCAuth.fetchUsers().catch(() => []) : Promise.resolve([]),
+    ]);
+    const predictions = mergePredictions(serverPredictions, getSavedPredictions());
+    const overall = predictions.length
+      ? buildLeaderboardFromPredictions(predictions, matches, users)
+      : fallbackPayload.overall || [];
+    return {
+      top10: overall.slice(0, 10),
+      overall,
+      matches,
+      predictions,
+      users,
+    };
+  }
+
   function scorePrediction(prediction, match) {
     const scoringEligible = Boolean(match && SCORING_STAGES.has(match.stage));
     if (!scoringEligible || match.status !== "completed") {
@@ -725,10 +758,21 @@
     return `Open until ${formatDateTime(cutoff.toISOString())}`;
   }
 
+  function matchStatusLabel(status) {
+    const labels = {
+      upcoming: "Upcoming",
+      live: "Live",
+      completed: "Completed",
+      "awaiting-result": "Awaiting result",
+    };
+    return labels[status] || status || "Upcoming";
+  }
+
   function timeLeftText(match) {
     if (!match) return "Match timing unavailable";
     if (match.status === "completed") return "Match completed";
     if (match.status === "live") return "Live now";
+    if (match.status === "awaiting-result") return "Awaiting result update";
     if (!match.date) return "Kickoff TBD";
 
     const kickoff = new Date(match.date);
@@ -977,6 +1021,8 @@
     fetchMatchDetails,
     getMatchesMeta,
     fetchLeaderboard,
+    fetchComputedLeaderboard,
+    mergePredictions,
     submitPrediction,
     fetchPredictions,
     deletePrediction,
@@ -997,6 +1043,7 @@
     samePredictionRecord,
     isPredictionOpen,
     predictionLockText,
+    matchStatusLabel,
     timeLeftText,
     openPredictionModal,
     showToast,

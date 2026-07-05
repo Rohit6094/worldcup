@@ -702,6 +702,11 @@ main {
   color: #27272a;
 }
 
+.status-badge.awaiting-result {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -867,6 +872,11 @@ main {
 
 .leader-tools select {
   flex: 0 1 230px;
+}
+
+.table-tools .btn {
+  min-height: 44px;
+  white-space: nowrap;
 }
 
 .leader-tools input:focus,
@@ -1497,6 +1507,7 @@ main {
 .status-badge.upcoming,
 .status-badge.completed,
 .status-badge.live,
+.status-badge.awaiting-result,
 .result-badge {
   border: 1px solid #a1a1aa;
   background: #e4e4e7;

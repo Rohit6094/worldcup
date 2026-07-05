@@ -21,12 +21,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     state.matches = event.detail.matches;
     renderDataNotice(false);
     renderDashboard(state.matches);
+    loadHeroLeaderboard(heroLeaderboardEl, state.matches);
+  });
+
+  document.addEventListener("wc:predictions-changed", () => {
+    loadHeroLeaderboard(heroLeaderboardEl, state.matches);
   });
 
   refreshButton?.addEventListener("click", async () => {
     refreshButton.disabled = true;
     refreshButton.textContent = "Refreshing...";
     await loadDashboardMatches(state, true);
+    await loadHeroLeaderboard(heroLeaderboardEl, state.matches);
     refreshButton.disabled = false;
     refreshButton.textContent = "Refresh Live Data";
   });
@@ -71,10 +77,10 @@ async function loadDashboardMatches(state, refresh = false) {
   }
 }
 
-async function loadHeroLeaderboard(container) {
+async function loadHeroLeaderboard(container, matches = null) {
   if (!container) return;
   try {
-    const payload = await WCApp.fetchLeaderboard();
+    const payload = await WCApp.fetchComputedLeaderboard({ matches });
     renderHeroLeaderboard(container, (payload.overall || payload.top10 || []).slice(0, 3));
   } catch (error) {
     container.innerHTML = `<div class="mini-empty">Leaderboard is unavailable.</div>`;
@@ -215,7 +221,7 @@ function renderFeaturedMatches(container, matches) {
         <article class="match-card prediction-card">
           <div class="card-meta match-card-top">
             <span class="stage-chip">${WCApp.escapeHtml(match.stage)}</span>
-            <span class="status-badge ${match.status}">${WCApp.escapeHtml(match.status)}</span>
+            <span class="status-badge ${match.status}">${WCApp.escapeHtml(WCApp.matchStatusLabel(match.status))}</span>
           </div>
           <div class="matchup">
             ${WCApp.teamMarkup(match.homeTeam)}
@@ -233,7 +239,9 @@ function renderFeaturedMatches(container, matches) {
                 ? `<button class="btn btn-primary" type="button" data-predict-match="${match.id}">Predict</button>`
                 : match.status === "upcoming"
                   ? `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(match))}</span>`
-                  : `<span class="result-badge">Winner: ${WCApp.escapeHtml(match.winner || "TBD")}</span>`
+                  : match.status === "awaiting-result"
+                    ? `<span class="prediction-status">Awaiting result update</span>`
+                    : `<span class="result-badge">Winner: ${WCApp.escapeHtml(match.winner || "TBD")}</span>`
             }
           </div>
           <div class="countdown-strip">${WCApp.escapeHtml(WCApp.timeLeftText(match))}</div>

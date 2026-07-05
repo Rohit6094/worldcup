@@ -10,7 +10,7 @@ from api.lib.config import is_vercel_kv_configured
 from api.leaderboard import get_leaderboard_payload
 from api.match_details import get_match_details_payload
 from api.matches import get_matches_payload
-from api.lib.storage import delete_prediction, list_predictions, prediction_identity_values, save_prediction, target_identity_values
+from api.lib.storage import delete_prediction, find_user_by_id, list_predictions, prediction_identity_values, save_prediction, target_identity_values
 from api.submit_prediction import validate_prediction, validate_prediction_cutoff
 
 
@@ -150,8 +150,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
             self.send_json(401, {"success": False, "error": "Login is required to submit predictions"})
             return
 
-        payload["displayName"] = requester.get("displayName") or requester.get("username") or payload.get("displayName", "")
-        error = validate_prediction(payload)
+        target_user = requester
+        if requester.get("role") == "admin" and str(payload.get("userId", "")).strip():
+            target_user = find_user_by_id(payload.get("userId"), include_private=False) or requester
+
+        payload["displayName"] = target_user.get("displayName") or target_user.get("username") or payload.get("displayName", "")
+        error = validate_prediction(payload, enforce_cutoff=requester.get("role") != "admin")
         if error:
             self.send_json(400, {"success": False, "error": error})
             return
@@ -159,10 +163,10 @@ class LocalHandler(SimpleHTTPRequestHandler):
         advancing_team = payload["advancingTeam"] if payload["predictedWinner"] == "Draw / Penalties" else payload["predictedWinner"]
         prediction = {
             "matchId": str(payload["matchId"]).strip(),
-            "userId": str(requester.get("id", "")).strip(),
-            "userEmail": str(requester.get("email") or requester.get("username") or "").strip(),
-            "username": str(requester.get("username") or requester.get("email") or "").strip(),
-            "displayName": str(requester.get("displayName") or payload["displayName"]).strip()[:80],
+            "userId": str(target_user.get("id", "")).strip(),
+            "userEmail": str(target_user.get("email") or target_user.get("username") or "").strip(),
+            "username": str(target_user.get("username") or target_user.get("email") or "").strip(),
+            "displayName": str(target_user.get("displayName") or payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
             "advancingTeam": str(advancing_team).strip(),
             "homeScore": payload["homeScore"],

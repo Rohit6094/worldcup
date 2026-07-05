@@ -96,6 +96,6 @@ class handler(BaseHTTPRequestHandler):
             self,
             200,
             get_leaderboard_payload(),
-            cache_control="s-maxage=60, stale-while-revalidate=300",
+            cache_control="no-store",
             methods="GET, OPTIONS",
         )

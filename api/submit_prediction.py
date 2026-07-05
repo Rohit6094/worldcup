@@ -3,7 +3,7 @@ from http.server import BaseHTTPRequestHandler
 
 from api.auth import authenticated_user_from_headers
 from api.lib.responses import error_payload, json_response, parse_json_body
-from api.lib.storage import save_prediction
+from api.lib.storage import find_user_by_id, save_prediction
 from api.matches import get_matches_payload
 
 
@@ -82,16 +82,17 @@ def validate_score_matches_winner(payload):
     return None
 
 
-def validate_prediction(payload):
+def validate_prediction(payload, enforce_cutoff=True):
     missing = [field for field in REQUIRED_FIELDS if field not in payload]
     if missing:
         return f"Missing required fields: {', '.join(missing)}"
 
     if not str(payload.get("matchId", "")).strip():
         return "matchId is required"
-    cutoff_error = validate_prediction_cutoff(str(payload.get("matchId", "")).strip())
-    if cutoff_error:
-        return cutoff_error
+    if enforce_cutoff:
+        cutoff_error = validate_prediction_cutoff(str(payload.get("matchId", "")).strip())
+        if cutoff_error:
+            return cutoff_error
     if not str(payload.get("displayName", "")).strip():
         return "displayName is required"
     if not str(payload.get("predictedWinner", "")).strip():
@@ -125,8 +126,12 @@ class handler(BaseHTTPRequestHandler):
             json_response(self, 401, error_payload("Login is required to submit predictions", "auth_required"), methods="POST, OPTIONS")
             return
 
-        payload["displayName"] = requester.get("displayName") or requester.get("username") or payload.get("displayName", "")
-        error = validate_prediction(payload)
+        target_user = requester
+        if requester.get("role") == "admin" and str(payload.get("userId", "")).strip():
+            target_user = find_user_by_id(payload.get("userId"), include_private=False) or requester
+
+        payload["displayName"] = target_user.get("displayName") or target_user.get("username") or payload.get("displayName", "")
+        error = validate_prediction(payload, enforce_cutoff=requester.get("role") != "admin")
         if error:
             json_response(self, 400, error_payload(error, "validation_error"), methods="POST, OPTIONS")
             return
@@ -134,10 +139,10 @@ class handler(BaseHTTPRequestHandler):
         advancing_team = payload["advancingTeam"] if payload["predictedWinner"] == "Draw / Penalties" else payload["predictedWinner"]
         prediction = {
             "matchId": str(payload["matchId"]).strip(),
-            "userId": str(requester.get("id", "")).strip(),
-            "userEmail": str(requester.get("email") or requester.get("username") or "").strip(),
-            "username": str(requester.get("username") or requester.get("email") or "").strip(),
-            "displayName": str(requester.get("displayName") or payload["displayName"]).strip()[:80],
+            "userId": str(target_user.get("id", "")).strip(),
+            "userEmail": str(target_user.get("email") or target_user.get("username") or "").strip(),
+            "username": str(target_user.get("username") or target_user.get("email") or "").strip(),
+            "displayName": str(target_user.get("displayName") or payload["displayName"]).strip()[:80],
             "predictedWinner": str(payload["predictedWinner"]).strip(),
             "advancingTeam": str(advancing_team).strip(),
             "homeScore": payload["homeScore"],

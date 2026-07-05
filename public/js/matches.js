@@ -138,7 +138,7 @@ function renderMatchCard(match) {
     <article class="match-card detailed prediction-card">
       <div class="card-meta match-card-top">
         <span class="stage-chip">${WCApp.escapeHtml(match.stage)}</span>
-        <span class="status-badge ${match.status}">${WCApp.escapeHtml(match.status)}</span>
+        <span class="status-badge ${match.status}">${WCApp.escapeHtml(WCApp.matchStatusLabel(match.status))}</span>
       </div>
       <div class="matchup">
         ${WCApp.teamMarkup(match.homeTeam)}
@@ -157,7 +157,9 @@ function renderMatchCard(match) {
               ? `<button class="btn btn-small btn-primary" type="button" data-predict-match="${match.id}">Predict</button>`
               : match.status === "upcoming"
                 ? `<span class="prediction-status">${WCApp.escapeHtml(WCApp.predictionLockText(match))}</span>`
-                : `<span class="result-badge">Result: ${WCApp.escapeHtml(match.winner || "Pending")}</span>`
+                : match.status === "awaiting-result"
+                  ? `<span class="prediction-status">Awaiting result update</span>`
+                  : `<span class="result-badge">Result: ${WCApp.escapeHtml(match.winner || "Pending")}</span>`
           }
         </div>
         ${
@@ -243,7 +245,7 @@ function renderMatchDetailsContent(content, match, details, source) {
       ${WCApp.teamMarkup(match.awayTeam)}
     </div>
     <dl class="match-details detail-modal-list">
-      <div><dt>Status</dt><dd>${WCApp.escapeHtml(match.status || "upcoming")}</dd></div>
+      <div><dt>Status</dt><dd>${WCApp.escapeHtml(WCApp.matchStatusLabel(match.status))}</dd></div>
       <div><dt>Kickoff</dt><dd>${WCApp.escapeHtml(WCApp.formatFullDateTime(match.date))}</dd></div>
       <div><dt>Venue</dt><dd>${WCApp.escapeHtml(match.venue || "Venue TBD")}${match.city ? `, ${WCApp.escapeHtml(match.city)}` : ""}</dd></div>
       <div><dt>Winner</dt><dd>${WCApp.escapeHtml(match.winner || "TBD")}</dd></div>

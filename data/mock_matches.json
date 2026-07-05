@@ -399,12 +399,12 @@
     "date": "2026-07-04T17:00:00Z",
     "venue": "",
     "city": "",
-    "status": "upcoming",
+    "status": "completed",
     "score": {
-      "home": null,
-      "away": null
+      "home": 0,
+      "away": 3
     },
-    "winner": null,
+    "winner": "Morocco",
     "goals": []
   },
   {
@@ -423,12 +423,12 @@
     "date": "2026-07-04T21:00:00Z",
     "venue": "",
     "city": "",
-    "status": "upcoming",
+    "status": "completed",
     "score": {
-      "home": null,
-      "away": null
+      "home": 0,
+      "away": 1
     },
-    "winner": null,
+    "winner": "France",
     "goals": []
   },
   {

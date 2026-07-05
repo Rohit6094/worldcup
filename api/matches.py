@@ -2,6 +2,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
@@ -190,7 +191,7 @@ KNOCKOUT_ORDER = {
     "Final": 6,
 }
 MAX_EVENT_LOOKUPS = 8
-MATCH_DATA_VERSION = 4
+MATCH_DATA_VERSION = 5
 
 # football-data.org can lag on filling teams in later knockout fixtures.
 # These pairs map Round of 16 fixtures to their Round of 32 feeder match ids.
@@ -285,6 +286,31 @@ def normalize_football_data_status(status):
     if status in FOOTBALL_DATA_LIVE_STATUSES:
         return "live"
     return "upcoming"
+
+
+def parse_utc_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def adjust_status_for_clock(status, kickoff_value, score=None):
+    if status != "upcoming":
+        return status
+    kickoff = parse_utc_date(kickoff_value)
+    if not kickoff or datetime.now(timezone.utc) < kickoff:
+        return status
+    score = score or {}
+    home_score = score.get("home") if isinstance(score.get("home"), int) else match_score_value(score, "home")
+    away_score = score.get("away") if isinstance(score.get("away"), int) else match_score_value(score, "away")
+    if isinstance(home_score, int) and isinstance(away_score, int):
+        return "completed"
+    if datetime.now(timezone.utc) < kickoff + timedelta(hours=3):
+        return "live"
+    return "awaiting-result"
 
 
 def request_api(path, query, api_key):
@@ -384,7 +410,8 @@ def normalize_football_data_match(item):
     home_team = item.get("homeTeam") or {}
     away_team = item.get("awayTeam") or {}
     score = item.get("score") or {}
-    status = normalize_football_data_status(item.get("status"))
+    date = item.get("utcDate")
+    status = adjust_status_for_clock(normalize_football_data_status(item.get("status")), date, score)
     home_name = home_team.get("name") or home_team.get("shortName") or "TBD"
     away_name = away_team.get("name") or away_team.get("shortName") or "TBD"
 
@@ -397,7 +424,7 @@ def normalize_football_data_match(item):
         "stage": normalize_football_data_stage(item.get("stage")),
         "homeTeam": flag_for_football_data_team(home_team),
         "awayTeam": flag_for_football_data_team(away_team),
-        "date": item.get("utcDate"),
+        "date": date,
         "venue": item.get("venue") or "",
         "city": "",
         "status": status,
@@ -418,7 +445,8 @@ def normalize_fixture(item):
     venue = fixture.get("venue") or {}
     status_payload = fixture.get("status") or {}
     short_status = status_payload.get("short")
-    status = normalize_status(short_status)
+    date = fixture.get("date")
+    status = adjust_status_for_clock(normalize_status(short_status), date, goals)
 
     home_name = ((teams.get("home") or {}).get("name")) or "TBD"
     away_name = ((teams.get("away") or {}).get("name")) or "TBD"
@@ -439,7 +467,7 @@ def normalize_fixture(item):
         "stage": normalize_stage(league.get("round")),
         "homeTeam": flag_for_team(home_name),
         "awayTeam": flag_for_team(away_name),
-        "date": fixture.get("date"),
+        "date": date,
         "venue": venue.get("name") or "",
         "city": venue.get("city") or "",
         "status": status,
