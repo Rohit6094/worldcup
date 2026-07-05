@@ -299,6 +299,30 @@ function csvEscape(value) {
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
+function excelText(value) {
+  const text = String(value ?? "");
+  if (!text) return "";
+  return `="${text.replaceAll('"', '""')}"`;
+}
+
+function scoreExportValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const score = Number(value);
+  return Number.isInteger(score) ? score : null;
+}
+
+function predictionScoreExportText(prediction) {
+  const home = scoreExportValue(prediction?.homeScore);
+  const away = scoreExportValue(prediction?.awayScore);
+  return home !== null && away !== null ? excelText(`${home}-${away}`) : "";
+}
+
+function actualScoreExportText(match) {
+  const home = match?.score?.home;
+  const away = match?.score?.away;
+  return Number.isInteger(home) && Number.isInteger(away) ? excelText(`${home}-${away}`) : "";
+}
+
 function downloadCsv(filename, headers, rows) {
   const lines = [
     headers.map(csvEscape).join(","),
@@ -324,7 +348,8 @@ function downloadPredictions() {
     Status: WCApp.matchStatusLabel(row.match?.status),
     "Predicted winner": row.predictedWinner || "",
     "Advancing team": row.advancingTeam || "",
-    Score: WCApp.predictionScoreText(row),
+    "Predicted score": predictionScoreExportText(row),
+    "Actual score": actualScoreExportText(row.match),
     Points: row.points || 0,
     "Scoring eligible": row.scoringEligible ? "Yes" : "No",
     Submitted: row.submittedAt || row.savedAt || "",
@@ -337,7 +362,8 @@ function downloadPredictions() {
     "Status",
     "Predicted winner",
     "Advancing team",
-    "Score",
+    "Predicted score",
+    "Actual score",
     "Points",
     "Scoring eligible",
     "Submitted",
